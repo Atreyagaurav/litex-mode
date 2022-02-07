@@ -1,10 +1,12 @@
-;;; litex-mode.el --- Minor mode for elisp based calculation.  -*- lexical-binding: t; -*-
+;;; litex-mode.el --- Minor mode for converting lisp to LaTeX  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2022
 
 ;; Author: Gaurav Atreya <allmanpride@gmail.com>
+;; URL: https://github.com/Atreyagaurav/litex-mode
 ;; Version: 0.1
 ;; Keywords: calculator, lisp, LaTeX
+;; Package-Requires: ((cl-lib "0.5") (emacs "24.1"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -27,9 +29,8 @@
 ;; modified with help from https://gist.github.com/bpanthi977/4b8ece0eeff3bc05bb82275a23cbb56d
 
 ;;; Code:
-
-;; TODO: use cl-libs functions instead.
-(require 'cl)				;somehow it doesn't work without this.
+(eval-when-compile (require 'pcase)) 
+(require 'cl-lib)
 
 (defvar litex-latex-functions '(sin cos tan))
 (defvar litex-latex-maybe-enclose? nil)
@@ -39,14 +40,15 @@
 (defvar litex-steps-join-string "= ")
 (defvar litex-steps-end-string " ")
 
+
 (defun litex-format-float (val)
   "Function that defines how floats are formatted in lisp2latex."
   (if (or (< val 1e-2) (> val 1e4))
                 (let* ((exponent (floor (log val 10)))
                       (front (/ val (expt 10 exponent))))
                   (format "%.2f \\times 10^{%d}" front exponent))
-              (format "%.3f" val))
-  )
+    (format "%.3f" val)))
+
 
 (defun litex-latex-maybe-enclose (form)
   (let* ((litex-latex-maybe-enclose? nil)
@@ -67,7 +69,7 @@
     (`(* . ,args)
      (setf latex-maybe-enclose t)
      (with-output-to-string
-       (loop for (me next . rest) on args do
+       (cl-loop for (me next . rest) on args do
              (if (numberp next)
                  (princ (format "%s \\times " (litex-latex-maybe-enclose me)))
                (princ (format "%s " (litex-latex-maybe-enclose me)))))))
@@ -92,7 +94,7 @@
     ;; assignment operator
     (`(setq . ,args)
      (with-output-to-string
-       (loop for (a b . rest) on args by #'cddr do
+       (cl-loop for (a b . rest) on args by #'cddr do
              (princ (format "%s = %s" (litex-lisp2latex-all a) (litex-lisp2latex-all b)))
              (when rest (princ "; ")))))
 
@@ -107,10 +109,10 @@
     
     ;; named functions
     (`(,func . ,args)
-     (let* ((known? (find func litex-latex-functions))
+     (let* ((known? (cl-find func litex-latex-functions))
             (enclose? (or (not known?)
                           (> (length args) 1)
-                          (listp (first args))))
+                          (listp (cl-first args))))
             (format-string (concat (if known? "\\%s" "\\mathrm{%s}")
                                    (if enclose?  "(%s)" " %s"))))
        (format format-string func (mapconcat #'litex-lisp2latex-all args ","))))
@@ -147,9 +149,9 @@
 
 (defun litex-solve-single-step (form)
   (cond ((listp form)
-         (if (every #'numberp (rest form))
+         (if (cl-every #'numberp (cl-rest form))
              (eval form)
-           (cons (first form) (mapcar #'litex-solve-single-step (rest form)))))
+           (cons (cl-first form) (mapcar #'litex-solve-single-step (cl-rest form)))))
 	((functionp form)
 	 form)
 
@@ -187,8 +189,7 @@
 	(mapconcat format-func (litex-solve-all-steps exp)
 		   (concat litex-steps-end-string litex-steps-join-string))))
       (_ (mapconcat format-func (litex-solve-all-steps expression)
-		    (concat litex-steps-end-string litex-steps-join-string)))
-      ))
+		    (concat litex-steps-end-string litex-steps-join-string)))))
 
 
 (defun litex-eval-and-replace ()
@@ -221,8 +222,7 @@
     (goto-char end)
     (while (re-search-backward
      "\\([0-9.+-]+\\)e\\([0-9.+-]+\\)" beg)
-      (replace-match "\\1 \\\\times 10^{\\2}")
-      )))
+      (replace-match "\\1 \\\\times 10^{\\2}"))))
 
 
 (defun litex-exp-in-latex-math (beg end)
@@ -232,23 +232,20 @@
     (goto-char beg)
     (insert "\\(")
     (goto-char (+ (point) (- end beg)))
-    (insert "\\)")
-    ))
+    (insert "\\)")))
 
 
 (defun litex-sexp-to-latex-exp ()
   "Converts valid sexp to latex expressions."
   (interactive)
   (backward-kill-sexp)
-  (insert (litex-lisp2latex-all (read (current-kill 0))))
-  )
+  (insert (litex-lisp2latex-all (read (current-kill 0)))))
 
 
 (defun litex-sexp-replace-variables ()
   (interactive)
   (backward-kill-sexp)
-  (insert (litex-substitute-values (read (current-kill 0))))
-  )
+  (insert (litex-substitute-values (read (current-kill 0)))))
 
 
 (defun litex-sexp-solve-all-steps (expression)
@@ -256,8 +253,7 @@
   (backward-kill-sexp)
   (let ((expression (read (current-kill 0))))  
     (insert
-     (litex-sexp-to-solved-string expression #'prin1-to-string))
-    ))
+     (litex-sexp-to-solved-string expression #'prin1-to-string))))
 
 
 (defun litex-sexp-solve-all-steps-equation ()
@@ -269,8 +265,7 @@
     (insert "\\begin{equation}\n")
     (insert
      (litex-sexp-to-solved-string expression #'litex-lisp2latex-all))
-    (insert "\n\\end{equation}\n")
-    ))
+    (insert "\n\\end{equation}\n")))
 
 
 (defun litex-sexp-solve-all-steps-eqnarray ()
@@ -282,8 +277,7 @@
     (insert "\\begin{eqnarray*}\n")
     (insert
      (litex-sexp-to-solved-string expression #'litex-lisp2latex-all))
-    (insert "\n\\end{eqnarray*}\n")
-    ))
+    (insert "\n\\end{eqnarray*}\n")))
 
 
 (defun litex-format-region-last (beg end)
@@ -329,12 +323,11 @@
 		   (match-string 1 word)
 		   (number-to-string (+ step (string-to-number
 					      (match-string 2 word))))
-		   (match-string 3 word))
-		  ))))))
+		   (match-string 3 word))))))))
 
 
 
-(defun insert-or-replace-x (beg end)
+(defun litex-insert-or-replace-x (beg end)
   "If a region is selected, replaces * by \times otherwise inserts \times
 instead of ×. Useful in LaTeX or to convert mathmatical expression
 to human redable one."
@@ -345,11 +338,7 @@ to human redable one."
   (if (= beg end)
       (insert "\\times")
       (when (re-search-backward "*" beg)
-	(replace-match "\\\\times")
-	)))
-
-
-(local-set-key "×" 'insert-or-replace-x)
+	(replace-match "\\\\times"))))
 
 
 (setq litex-key-map (make-sparse-keymap))
@@ -366,12 +355,12 @@ to human redable one."
 (define-key litex-key-map (kbd "a") 'litex-sexp-solve-all-steps-eqnarray)
 
 
+(local-set-key "×" 'litex-insert-or-replace-x)
+
 
 (define-minor-mode litex-mode
   "Minor mode for Calculations on lisp, and formatting on LaTeX."
-  :lighter " LiTeX"
-  ;; :keymap `((,(kbd "C-e") . litex-key-map))
-  )
+  :lighter " LiTeX")
 
 
 (provide 'litex-mode)
