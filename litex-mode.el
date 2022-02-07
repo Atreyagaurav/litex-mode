@@ -326,10 +326,10 @@ Argument END end position of region."
 		   (list (cl-first bnd) (cl-rest bnd)))))
   (let ((text (buffer-substring-no-properties beg end)))
     ;; maybe I should make it eval if given expression
-    (if (string-match-p "%[0-9.]*[dfex]" litex-format-float-string-float)
+    (if (string-match-p "%[0-9.]*[dfex]" litex-format-float-string)
 	(setq text (eval (read text))))
     (kill-region beg end)
-    (insert (format litex-format-float-string-float text))))
+    (insert (format litex-format-float-string text))))
 
 
 (defun litex-format-region (beg end)
@@ -339,8 +339,8 @@ Argument END end position of region."
                  (let ((bnd (bounds-of-thing-at-point 'symbol)))
 		   (list (cl-first bnd) (cl-rest bnd)))))
   (let ((fmt  (read-string "Enter format string:"
-			   litex-format-float-string-float)))
-    (setq litex-format-float-string-float fmt)
+			   litex-format-float-string)))
+    (setq litex-format-float-string fmt)
     (litex-format-region-last beg end)))
 
 
