@@ -1,6 +1,6 @@
 ;;; litex-mode.el --- Minor mode for elisp based calculation.  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2021
+;; Copyright (C) 2022
 
 ;; Author: Gaurav Atreya <allmanpride@gmail.com>
 ;; Version: 0.1
@@ -28,13 +28,25 @@
 
 ;;; Code:
 
-(require 'cl)
+;; TODO: use cl-libs functions instead.
+(require 'cl)				;somehow it doesn't work without this.
 
 (defvar litex-latex-functions '(sin cos tan))
 (defvar litex-latex-maybe-enclose? nil)
 
 
-(setq litex-format-string "%.2f")
+(defvar litex-format-string "%.2f")
+(defvar litex-steps-join-string "= ")
+(defvar litex-steps-end-string " ")
+
+(defun litex-format-float (val)
+  "Function that defines how floats are formatted in lisp2latex."
+  (if (or (< val 1e-2) (> val 1e4))
+                (let* ((exponent (floor (log val 10)))
+                      (front (/ val (expt 10 exponent))))
+                  (format "%.2f \\times 10^{%d}" front exponent))
+              (format "%.3f" val))
+  )
 
 (defun litex-latex-maybe-enclose (form)
   (let* ((litex-latex-maybe-enclose? nil)
@@ -89,6 +101,10 @@
     (`(sqrt ,arg) (format "\\sqrt{%s}" (litex-lisp2latex-all arg)))
 
 
+    ;; Function definition:
+    ;; TODO: something like func(a,b,c): a+b+c
+
+    
     ;; named functions
     (`(,func . ,args)
      (let* ((known? (find func litex-latex-functions))
@@ -101,17 +117,13 @@
 
     (_
      (cond ((floatp form)
-            (if (or (< form 1e-2) (> form 1e4))
-                (let* ((exponent (floor (log form 10)))
-                      (front (/ form (expt 10 exponent))))
-                  (format "%.2f \\times 10^{%d}" front exponent))
-              (format "%.3f" form)))
+            (litex-format-float form))
            (t (prin1-to-string form))))))
 
 
 
 (defun litex-contains-variables (expression)
-  "gives a string from expression substituting the values."
+  "Checks if given expression has variables."
   (if (functionp expression)
       nil
   (if (symbolp expression)
@@ -146,36 +158,37 @@
 
         (t form)))
 
-;; (defun solve-single-step (expression)
-;;   (let
-;;       ((form-str (prin1-to-string expression)))
-;;     (read
-;;      (replace-regexp-in-string "\\(([^(^)]+)\\)"
-;; 			       (lambda (s) (format "%s" (eval (read s))))
-;; 			       form-str)))
-;;   )
-
 
 (defun litex-solve-all-steps (form)
   (let
-      ((solution (list (prin1-to-string form)))) ;given expression
+      ((solution (list form))) ;given expression
     (if
 	(litex-contains-variables form)
       (setq solution
 	    (append solution
 		    (list
-		     (prin1-to-string
-				  (setq form
-					(read
-					 (litex-substitute-values form))))))))
+		     (setq form
+			   (read
+			    (litex-substitute-values form)))))))
 
   (while (consp form)
     (setq solution
 	  (append solution
-		  (list (prin1-to-string
-			 (setq form
-			       (litex-solve-single-step form)))))))
+		  (list (setq form
+			      (litex-solve-single-step form))))))
   solution))
+
+
+(defun litex-sexp-to-solved-string (expression format-func)
+  (pcase expression
+      (`(setq ,var ,exp)
+       (concat
+	(format (concat "%s" litex-steps-join-string) var)
+	(mapconcat format-func (litex-solve-all-steps exp)
+		   (concat litex-steps-end-string litex-steps-join-string))))
+      (_ (mapconcat format-func (litex-solve-all-steps expression)
+		    (concat litex-steps-end-string litex-steps-join-string)))
+      ))
 
 
 (defun litex-eval-and-replace ()
@@ -195,7 +208,7 @@
   (backward-kill-sexp)
   (condition-case nil
       (insert (concat (current-kill 0)
-		     " = "
+		     litex-steps-join-string
 		     (format "%s"
 			     (eval (read (current-kill 0))))))
     (error (message "Invalid expression"))))
@@ -238,18 +251,39 @@
   )
 
 
-(defun litex-sexp-solve-all-steps ()
+(defun litex-sexp-solve-all-steps (expression)
+  (interactive (list (sexp-at-point)))
+  (backward-kill-sexp)
+  (let ((expression (read (current-kill 0))))  
+    (insert
+     (litex-sexp-to-solved-string expression #'prin1-to-string))
+    ))
+
+
+(defun litex-sexp-solve-all-steps-equation ()
   (interactive)
   (backward-kill-sexp)
-  (let ((expression (read (current-kill 0))))
-    (pcase expression
-      (`(setq ,var ,exp)
-       (insert (concat
-		(format "%s = " var)
-		(s-join " = " (litex-solve-all-steps exp)))))
-      (_ (s-join " = " (litex-solve-all-steps expression)))
-      )))
+  (let ((expression (read (current-kill 0)))
+	(litex-steps-join-string "= ")
+	(litex-steps-end-string " "))
+    (insert "\\begin{equation}\n")
+    (insert
+     (litex-sexp-to-solved-string expression #'litex-lisp2latex-all))
+    (insert "\n\\end{equation}\n")
+    ))
 
+
+(defun litex-sexp-solve-all-steps-eqnarray ()
+  (interactive)
+  (backward-kill-sexp)
+  (let ((expression (read (current-kill 0)))
+	(litex-steps-join-string " &=& ")
+	(litex-steps-end-string "\\\\\n"))
+    (insert "\\begin{eqnarray*}\n")
+    (insert
+     (litex-sexp-to-solved-string expression #'litex-lisp2latex-all))
+    (insert "\n\\end{eqnarray*}\n")
+    ))
 
 
 (defun litex-format-region-last (beg end)
@@ -328,6 +362,8 @@ to human redable one."
 (define-key litex-key-map (kbd "+") 'litex-increment-number)
 (define-key litex-key-map (kbd "l") 'litex-exp-to-latex)
 (define-key litex-key-map (kbd "m") 'litex-exp-in-latex-math)
+(define-key litex-key-map (kbd "A") 'litex-sexp-solve-all-steps-equation)
+(define-key litex-key-map (kbd "a") 'litex-sexp-solve-all-steps-eqnarray)
 
 
 
