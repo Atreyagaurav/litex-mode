@@ -1,0 +1,258 @@
+\input texinfo    @c -*- texinfo -*-
+@c %**start of header
+@setfilename README.info
+@settitle 
+@documentencoding UTF-8
+@documentlanguage en
+@c %**end of header
+
+@finalout
+@titlepage
+@title 
+@end titlepage
+
+@contents
+
+@ifnottex
+@node Top
+@top 
+@end ifnottex
+
+@menu
+* Li@TeX{} mode::
+* Keybindings::
+* Explanation for functions::
+* Configuration::
+
+@detailmenu
+--- The Detailed Node Listing ---
+
+Explanation for functions
+
+* litex-format-region-last::
+* litex-format-region::
+* litex-eval-and-replace::
+* litex-eval-and-insert::
+* litex-sexp-to-latex-exp::
+* litex-sexp-solve-all-steps::
+* litex-increment-number::
+* litex-exp-to-latex::
+* litex-exp-in-latex-math::
+* litex-sexp-solve-all-steps-equation::
+* litex-sexp-solve-all-steps-eqnarray::
+
+@end detailmenu
+@end menu
+
+@node Li@TeX{} mode
+@chapter Li@TeX{} mode
+
+This is a minor mode to convert valid elisp/lisp expressions to latex.
+
+This is useful for emacs users because emacs allows lisp code to be directly evaluated inside any buffer, which means no need to have any code blocks. But since lisp expressions aren't popular we can't expect to put them in reports, so to overcome that I wrote this mode with the help of my friend @uref{https://gist.github.com/bpanthi977, Bibek Panthi}.
+
+The beginning of this mode, and previous codes are here:
+@itemize
+@item
+@uref{https://emacs.stackexchange.com/questions/70358/how-can-i-convert-a-lisp-expression-to-a-latex-math-expression/70360?noredirect=1#comment113158_70360, Stackexchange Question}
+@item
+@uref{https://gist.github.com/bpanthi977/4b8ece0eeff3bc05bb82275a23cbb56d, Bibek's gist}
+@item
+@uref{https://github.com/Atreyagaurav/emacs-modules, My previous calculation template mode and first few versions of Li@TeX{}}
+
+Suppose we have this in a text file, we have all the variables and the formula as lisp expressions.
+@end itemize
+@example
+   Net radiation, (setq R_n 185) W/m²
+   Temperature, (setq T 28.5) °C
+   Relative Humidity, (setq Rh .55)
+   Air velocity at 2m height, (setq u_2 2.7) m/s
+   Atmospheric pressure, (setq p 101.3e3) Pa
+   Roughness height, (setq Z_0 0.03) cm
+   (setq Z_2 200) cm
+
+   Energy balance method:
+   (setq E_r (/ (- R_n H_s G) l_v ρ_w))
+ 
+   Where,
+   (setq l_v (- 2500 (* 2.36 T))) kJ/kg
+   (setq l_v (* l_v 1e3)) J/kg
+   From table 2.5.2
+   (setq ρ_w 996.4) kg/m³
+
+   Assume, (setq H_s 0 G 0)
+   (setq E_r (/ (- R_n H_s G) l_v ρ_w))
+@end example
+
+After evaluating all expressions, we can get the values, while we can also convert them to latex format like this:
+@example
+   Net radiation, R_n = 185 W/m²
+   Temperature, T = 28.5 °C
+   Relative Humidity, Rh = 0.55
+   Air velocity at 2m height, u_2 = 2.7 m/s
+   Atmospheric pressure, p = 1.01 \times 10^@{5@} Pa
+   Roughness height, Z_0 = 0.3 cm
+   Z_2 = 200 cm
+
+   Energy balance method:
+   E_r = \frac@{R_n - H_s - G@}@{l_v ρ_w @}
+ 
+   Where,
+   l_v = 2500 - 2.360 T  = 2500 - 2.360 \times 28.500  = 2500 - 67.260 = 2432.74 kJ/kg
+   l_v = l_v \times 1000  = 2432740.0 J/kg
+   From table 2.5.2
+   ρ_w = 996.400 kg/m³
+
+   Assume, H_s = 0; G = 0
+   E_r = \frac@{R_n - H_s - G@}@{l_v ρ_w @} = \frac@{185 - 0 - 0@}@{2432.740 \times 996.400 @} = \frac@{185@}@{2432.740 \times 996.400 @} = 7.63 \times 10^@{-05@}
+@end example
+
+So not only can it convert lisp expressions to latex, it can also, give intermediate solution steps. Perfect for doing homeworks (as that's what I made it for) :P
+
+Improvement over @uref{https://github.com/Atreyagaurav/emacs-modules, Calt-mode}:
+
+@image{./images/litex,,,,png}
+
+@node Keybindings
+@chapter Keybindings
+
+@lisp
+(define-key litex-key-map (kbd "F") 'litex-format-region)
+(define-key litex-key-map (kbd "f") 'litex-format-region-last)
+(define-key litex-key-map (kbd "E") 'litex-eval-and-replace)
+(define-key litex-key-map (kbd "e") 'litex-eval-and-insert)
+(define-key litex-key-map (kbd "s") 'litex-sexp-to-latex-exp)
+(define-key litex-key-map (kbd "S") 'litex-sexp-solve-all-steps)
+(define-key litex-key-map (kbd "+") 'litex-increment-number)
+(define-key litex-key-map (kbd "l") 'litex-exp-to-latex)
+(define-key litex-key-map (kbd "m") 'litex-exp-in-latex-math)
+(define-key litex-key-map (kbd "A") 'litex-sexp-solve-all-steps-equation)
+(define-key litex-key-map (kbd "a") 'litex-sexp-solve-all-steps-eqnarray)
+@end lisp
+
+@node Explanation for functions
+@chapter Explanation for functions
+
+@menu
+* litex-format-region-last::
+* litex-format-region::
+* litex-eval-and-replace::
+* litex-eval-and-insert::
+* litex-sexp-to-latex-exp::
+* litex-sexp-solve-all-steps::
+* litex-increment-number::
+* litex-exp-to-latex::
+* litex-exp-in-latex-math::
+* litex-sexp-solve-all-steps-equation::
+* litex-sexp-solve-all-steps-eqnarray::
+@end menu
+
+@node litex-format-region-last
+@section litex-format-region-last
+
+Formats the selection based on variable @code{litex-format-string}.
+
+For example: @code{2.3434343} ⇒ @code{2.34} (when @code{litex-format-string} is @code{.2f})
+
+@node litex-format-region
+@section litex-format-region
+
+Same as @code{litex-format-region-last} but asks for the format, it also sets the @code{litex-format-string} variable.
+
+@strong{NOTE}: Doesn't work well with multiple-cursors, so first use this once, then use the @code{litex-format-region-last} on the multiple cursors.
+
+@node litex-eval-and-replace
+@section litex-eval-and-replace
+
+Evals the last sexp and replaces it with the evaluation value.
+
+@node litex-eval-and-insert
+@section litex-eval-and-insert
+
+Evals the last sexp and inserts the evaluation value after that.
+
+The value and sexp are separated by @code{litex-steps-join-string} which is "= " by default.
+
+@node litex-sexp-to-latex-exp
+@section litex-sexp-to-latex-exp
+
+Converts valid lisp sexp to latex Expression:
+
+For example: @code{(+ 2 3 (* 6 x))} ⇒ @code{2 + 3 + 6 x}
+
+@node litex-sexp-solve-all-steps
+@section litex-sexp-solve-all-steps
+
+Solves lisp sexp steps by steps:
+
+For example:
+@code{(setq x 5)} ⇒ @code{x = 5} then @code{(setq y (+ 2 3 (* 6 x)))} ⇒ @code{y = (+ 2 3 (* 6 x))  = (+ 2 3 (* 6 5))  = (+ 2 3 30)  = 35}
+
+@node litex-increment-number
+@section litex-increment-number
+
+Increments the number.
+
+@code{some/url/to/chapter-2} ⇒  @code{some/url/to/chapter-3}
+
+@node litex-exp-to-latex
+@section litex-exp-to-latex
+
+Converts exponential term to latex format.
+
+@code{1.23e-34} ⇒ @code{1.23 \times 10^@{-34@}}
+
+@node litex-exp-in-latex-math
+@section litex-exp-in-latex-math
+
+Encloses the selection in latex inline math.
+
+@code{1.23e-34} ⇒ @code{\(1.23e-34\)}
+
+@node litex-sexp-solve-all-steps-equation
+@section litex-sexp-solve-all-steps-equation
+
+Same as @code{litex-sexp-solve-all-steps} but puts them in equation environment.
+
+For example: @code{(setq y (+ 2 3 (* 6 x)))} ⇒
+
+@example
+\begin@{equation@}
+y= 2 + 3 + 6 x  = 2 + 3 + 6 \times 5  = 2 + 3 + 30 = 35
+\end@{equation@}
+@end example
+
+@node litex-sexp-solve-all-steps-eqnarray
+@section litex-sexp-solve-all-steps-eqnarray
+
+Same as @code{litex-sexp-solve-all-steps} but puts them in eqnarray* environment.
+
+
+For example: @code{(setq y (+ 2 3 (* 6 x)))} ⇒
+
+@example
+\begin@{eqnarray*@}
+y &=& 2 + 3 + 6 x \\
+ &=& 2 + 3 + 6 \times 5 \\
+ &=& 2 + 3 + 30\\
+ &=& 35
+\end@{eqnarray*@}
+@end example
+
+@node Configuration
+@chapter Configuration
+
+Clone the repo into your machine and add the path to @code{load-path}, or just load the individual module you want to add.
+
+Sample configuration using @code{use-package} I use is as follows:
+
+@lisp
+(use-package litex-mode
+  :load-path "~/.emacs.d/myfunc/litex-mode/"
+  :commands litex-mode
+  :hook text-mode
+  :config (local-set-key (kbd "C-e") litex-key-map)
+  )
+@end lisp
+
+@bye
