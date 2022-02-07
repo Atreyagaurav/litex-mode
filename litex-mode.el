@@ -385,20 +385,19 @@ Argument END end position of region."
   :keymap (make-sparse-keymap))
 
 
-(define-key litex-mode-map (kbd "F") 'litex-format-region)
-(define-key litex-mode-map (kbd "f") 'litex-format-region-last)
-(define-key litex-mode-map (kbd "E") 'litex-eval-and-replace)
-(define-key litex-mode-map (kbd "e") 'litex-eval-and-insert)
-(define-key litex-mode-map (kbd "s") 'litex-sexp-to-latex-exp)
-(define-key litex-mode-map (kbd "S") 'litex-sexp-solve-all-steps)
-(define-key litex-mode-map (kbd "+") 'litex-increment-number)
-(define-key litex-mode-map (kbd "l") 'litex-exp-to-latex)
-(define-key litex-mode-map (kbd "m") 'litex-exp-in-latex-math)
-(define-key litex-mode-map (kbd "A") 'litex-solve-all-steps-equation)
-(define-key litex-mode-map (kbd "a") 'litex-solve-all-steps-eqnarray)
-
-
-(local-set-key "×" 'litex-insert-or-replace-x)
+(local-unset-key (kbd "C-e"))
+(define-key litex-mode-map (kbd "C-e F") 'litex-format-region)
+(define-key litex-mode-map (kbd "C-e f") 'litex-format-region-last)
+(define-key litex-mode-map (kbd "C-e E") 'litex-eval-and-replace)
+(define-key litex-mode-map (kbd "C-e e") 'litex-eval-and-insert)
+(define-key litex-mode-map (kbd "C-e s") 'litex-sexp-to-latex-exp)
+(define-key litex-mode-map (kbd "C-e S") 'litex-sexp-solve-all-steps)
+(define-key litex-mode-map (kbd "C-e +") 'litex-increment-number)
+(define-key litex-mode-map (kbd "C-e l") 'litex-exp-to-latex)
+(define-key litex-mode-map (kbd "C-e m") 'litex-exp-in-latex-math)
+(define-key litex-mode-map (kbd "C-e A") 'litex-solve-all-steps-equation)
+(define-key litex-mode-map (kbd "C-e a") 'litex-solve-all-steps-eqnarray)
+(define-key litex-mode-map (kbd "×") 'litex-insert-or-replace-x)
 
 
 (provide 'litex-mode)
