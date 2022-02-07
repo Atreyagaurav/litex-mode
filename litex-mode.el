@@ -132,6 +132,14 @@
 
     ;; Function definition:
     ;; TODO: something like func(a,b,c): a+b+c
+    (`(defun . ,funcargs)
+     (let ((func-name (car funcargs))
+	   (args (cadr funcargs))
+	   (expr (caddr funcargs)))
+       (format "%s(%s):%s"
+	       func-name
+	       (mapconcat #'prin1-to-string args ",")
+	       (litex-lisp2latex-all expr))))
 
 
     ;; named functions

@@ -109,9 +109,6 @@ After evaluating all expressions, we can get the values, while we can also conve
 
 So not only can it convert lisp expressions to latex, it can also, give intermediate solution steps. Perfect for doing homeworks (as that's what I made it for) :P
 
-Improvement over @uref{https://github.com/Atreyagaurav/emacs-modules, Calt-mode}:
-
-@image{./images/litex,,,,png}
 
 @node Keybindings
 @chapter Keybindings
