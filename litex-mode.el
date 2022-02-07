@@ -94,7 +94,7 @@
      (mapconcat #'litex-lisp2latex-all args " + "))
 
     (`(* . ,args)
-     (setf latex-maybe-enclose t)
+     (setf litex-latex-maybe-enclose? t)
      (with-output-to-string
        (cl-loop for (me next . rest) on args do
 		(if (numberp next)
@@ -292,7 +292,7 @@ Argument END end position of region."
      (litex-sexp-to-solved-string expression #'prin1-to-string))))
 
 
-(defun litex-sexp-solve-all-steps-equation ()
+(defun litex-solve-all-steps-equation ()
   "Solve last sexp in steps and insert it in LaTeX equation environment."
   (interactive)
   (backward-kill-sexp)
@@ -305,7 +305,7 @@ Argument END end position of region."
     (insert litex-math-equation-end)))
 
 
-(defun litex-sexp-solve-all-steps-eqnarray ()
+(defun litex-solve-all-steps-eqnarray ()
   "Solve last sexp in steps and insert it in LaTeX eqnarray environment."
   (interactive)
   (backward-kill-sexp)
@@ -379,27 +379,26 @@ Argument END end position of region."
     (when (re-search-backward "*" beg)
       (replace-match "\\\\times"))))
 
+(define-minor-mode litex-mode
+  "Minor mode for Calculations on lisp, and formatting on LaTeX."
+  :lighter " LiTeX"
+  :keymap (make-sparse-keymap))
 
-(setq litex-key-map (make-sparse-keymap))
-(define-key litex-key-map (kbd "F") 'litex-format-region)
-(define-key litex-key-map (kbd "f") 'litex-format-region-last)
-(define-key litex-key-map (kbd "E") 'litex-eval-and-replace)
-(define-key litex-key-map (kbd "e") 'litex-eval-and-insert)
-(define-key litex-key-map (kbd "s") 'litex-sexp-to-latex-exp)
-(define-key litex-key-map (kbd "S") 'litex-sexp-solve-all-steps)
-(define-key litex-key-map (kbd "+") 'litex-increment-number)
-(define-key litex-key-map (kbd "l") 'litex-exp-to-latex)
-(define-key litex-key-map (kbd "m") 'litex-exp-in-latex-math)
-(define-key litex-key-map (kbd "A") 'litex-sexp-solve-all-steps-equation)
-(define-key litex-key-map (kbd "a") 'litex-sexp-solve-all-steps-eqnarray)
+
+(define-key litex-mode-map (kbd "F") 'litex-format-region)
+(define-key litex-mode-map (kbd "f") 'litex-format-region-last)
+(define-key litex-mode-map (kbd "E") 'litex-eval-and-replace)
+(define-key litex-mode-map (kbd "e") 'litex-eval-and-insert)
+(define-key litex-mode-map (kbd "s") 'litex-sexp-to-latex-exp)
+(define-key litex-mode-map (kbd "S") 'litex-sexp-solve-all-steps)
+(define-key litex-mode-map (kbd "+") 'litex-increment-number)
+(define-key litex-mode-map (kbd "l") 'litex-exp-to-latex)
+(define-key litex-mode-map (kbd "m") 'litex-exp-in-latex-math)
+(define-key litex-mode-map (kbd "A") 'litex-solve-all-steps-equation)
+(define-key litex-mode-map (kbd "a") 'litex-solve-all-steps-eqnarray)
 
 
 (local-set-key "×" 'litex-insert-or-replace-x)
-
-
-(define-minor-mode litex-mode
-  "Minor mode for Calculations on lisp, and formatting on LaTeX."
-  :lighter " LiTeX")
 
 
 (provide 'litex-mode)
