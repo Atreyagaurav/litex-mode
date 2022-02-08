@@ -90,7 +90,7 @@
   (pcase form
     ;; basic operators
     (`(+ . ,args)
-     (setf litex-latex-maybe-enclose t)
+     (setf litex-latex-maybe-enclose? t)
      (mapconcat #'litex-lisp2latex-all args " + "))
 
     (`(* . ,args)
