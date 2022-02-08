@@ -38,6 +38,9 @@
 ;; lisp functions that lave their own latex commands
 (defvar litex-latex-functions '(sin cos tan))
 
+;; whether to make the hyphenated variables subscript or not
+(defvar litex-make-hyphenated-to-subscript t)
+
 ;; enclose latex converted to paran
 (defvar litex-latex-maybe-enclose? nil)
 
@@ -76,6 +79,16 @@
     (format litex-format-float-string val)))
 
 
+(defun litex-format-variable (var)
+  (let ((var-str (prin1-to-string var)))
+    (if litex-make-hyphenated-to-subscript
+	(while (string-match "\\([^-]+\\)[-]\\(.*\\)" var-str)
+	  (setq var-str (format "%s_{%s}"
+				(match-string 1 var-str)
+				(match-string 2 var-str)))))
+    var-str))
+
+
 (defun litex-latex-maybe-enclose (form)
   "Encloses FORM in parantheis if LITEX-LATEX-MAYBE-ENCLOSE is true."
   (let* ((litex-latex-maybe-enclose? nil)
@@ -85,78 +98,100 @@
       latex)))
 
 
-(defun litex-lisp2latex-all (form)
-  "Convert given Lisp expression FORM to latex equivalent string."
-  (pcase form
-    ;; basic operators
-    (`(+ . ,args)
-     (setf litex-latex-maybe-enclose t)
-     (mapconcat #'litex-lisp2latex-all args " + "))
 
-    (`(* . ,args)
-     (setf litex-latex-maybe-enclose? t)
-     (with-output-to-string
+;; formatting functions to be called by litex-lisp2latex-all
+;; each one corresponds to the function at the end with args as arguments.
+(defun litex-format-args-+ (args)
+  (let ((litex-latex-maybe-enclose t))
+       (mapconcat #'litex-lisp2latex-all args " + ")))
+
+
+(defun litex-format-args-- (args)
+  (let ((arg1 (car args))
+	(arg-rest (cdr args)))
+  (if arg-rest
+         (format "%s - %s" (litex-lisp2latex-all arg1)
+                 (mapconcat #'litex-lisp2latex-all arg-rest " - "))
+    (format "-%s" (litex-lisp2latex-all arg1)))))
+
+
+(defun litex-format-args-* (args)
+  (let ((litex-latex-maybe-enclose? t))
+   (with-output-to-string
        (cl-loop for (me next . rest) on args do
 		(if (numberp next)
                     (princ (format "%s \\times " (litex-latex-maybe-enclose me)))
-		  (princ (format "%s " (litex-latex-maybe-enclose me)))))))
+		  (princ (format "%s" (litex-latex-maybe-enclose me))))))))
 
-    (`(/ ,a1 . ,args)
-     (if args
-         (format "\\frac{%s}{%s}" (litex-lisp2latex-all a1)
-                 (litex-lisp2latex-all (cons '* args)))
-       (format "\\frac1{%s}" (litex-lisp2latex-all a1))))
+(defun litex-format-args-/ (args)
+  (let ((arg1 (car args))
+	(arg-rest (cdr args)))
+  (if arg-rest
+      (format "\\frac{%s}{%s}"
+	      (litex-lisp2latex-all arg1)
+              (litex-lisp2latex-all (cons '* arg-rest)))
+    (format "\\frac1{%s}" (litex-lisp2latex-all arg1)))))
 
-    (`(- ,a1 . ,args)
-     (if args
-         (format "%s - %s" (litex-lisp2latex-all a1)
-                 (mapconcat #'litex-lisp2latex-all args " - "))
-       (format "- %s" (litex-lisp2latex-all a1))))
 
-    (`(expt ,base ,power)
-     (if (listp base)
+(defun litex-format-args-1+ (args)
+  (concat (litex-lisp2latex-all (car args)) " + 1"))
+
+
+(defun litex-format-args-expt (args)
+  (let ((base (car args))
+	(power (cadr args)))
+   (if (listp base)
          (format "(%s)^{%s}" (litex-lisp2latex-all base) (litex-lisp2latex-all power))
-       (format "%s^{%s}"  (litex-lisp2latex-all base) (litex-lisp2latex-all power))))
-
-    ;; assignment operator
-    (`(setq . ,args)
-     (with-output-to-string
-       (cl-loop for (a b . rest) on args by #'cddr do
-		(princ (format "%s = %s" (litex-lisp2latex-all a) (litex-lisp2latex-all b)))
-		(when rest (princ "; ")))))
-
-    ;; other operators
-    (`(1+ ,arg) (concat "1 + " (litex-lisp2latex-all arg) ))
-    (`(sqrt ,arg) (format "\\sqrt{%s}" (litex-lisp2latex-all arg)))
+     (format "%s^{%s}"  (litex-lisp2latex-all base) (litex-lisp2latex-all power)))))
 
 
-    ;; Function definition:
-    ;; TODO: something like func(a,b,c): a+b+c
-    (`(defun . ,funcargs)
-     (let ((func-name (car funcargs))
-	   (args (cadr funcargs))
-	   (expr (caddr funcargs)))
+(defun litex-format-args-sqrt (args)
+  (format "\\sqrt{%s}" (litex-lisp2latex-all (car args))))
+
+
+(defun litex-format-args-setq (args)
+  (with-output-to-string
+    (cl-loop for (a b . rest) on args by #'cddr do
+	     (princ (format "%s = %s" (litex-lisp2latex-all a) (litex-lisp2latex-all b)))
+	     (when rest (princ "; ")))))
+
+
+(defun litex-format-args-defun (args)
+  (let ((func-name (car args))
+	   (fargs (cadr args))
+	   (expr (caddr args)))
        (format "%s(%s):%s"
 	       func-name
-	       (mapconcat #'prin1-to-string args ",")
+	       (mapconcat #'prin1-to-string fargs ",")
 	       (litex-lisp2latex-all expr))))
 
 
-    ;; named functions
-    (`(,func . ,args)
-     (let* ((known? (cl-find func litex-latex-functions))
+(defun litex-format-args-default (func args)
+  (let ((func-symbol (intern (format "litex-format-args-%s" func))))
+    (if (functionp func-symbol)
+	(apply func-symbol (list args))
+      (let* ((known? (cl-find func litex-latex-functions))
             (enclose? (or (not known?)
                           (> (length args) 1)
                           (listp (cl-first args))))
             (format-string (concat (if known? "\\%s" "\\mathrm{%s}")
                                    (if enclose?  "(%s)" " %s"))))
-       (format format-string func (mapconcat #'litex-lisp2latex-all args ","))))
+	(format format-string func (mapconcat #'litex-lisp2latex-all args ","))))))
 
+
+(defun litex-lisp2latex-all (form)
+  "Convert given Lisp expression FORM to latex equivalent string."
+  (pcase form
+    
+    ;; functions
+    (`(,func . ,args) (litex-format-args-default func args))
+
+    ;; simple variables
     (_
-     (cond ((floatp form)
-            (litex-format-float form))
+     (cond ((floatp form) (litex-format-float form))
+	   ;; FIX: doesn't work now
+	   ((symbolp form) (litex-format-variable form))
            (t (prin1-to-string form))))))
-
 
 
 (defun litex-contains-variables (expression)
