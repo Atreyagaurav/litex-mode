@@ -102,7 +102,7 @@
 ;; formatting functions to be called by litex-lisp2latex-all
 ;; each one corresponds to the function at the end with args as arguments.
 (defun litex-format-args-+ (args)
-  (let ((litex-latex-maybe-enclose t))
+  (let ((litex-latex-maybe-enclose? t))
        (mapconcat #'litex-lisp2latex-all args " + ")))
 
 
