@@ -164,3 +164,11 @@ y &=& 2 + 3 + 6 x \\
   :config (local-set-key (kbd "C-e") litex-key-map)
   )
 #+end_src
+
+* Contributing
+  Since this package is new, I'd appreciate contributions on few things:
+
+  - There are many tests to be written for the functions.
+  - Many functions that might have special syntax in LaTeX yet to be written. For example ~1+~, ~defun~ were added later (it only started with 4 operators), similar could be done for many more.
+  - Fixing some glitches with the current functions.
+  - Maybe some symbolic calculations using ~calc-eval~ if it has variables that are not yet defined.
