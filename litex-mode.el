@@ -35,39 +35,47 @@
 (require 'cl-lib)
 
 
-;; lisp functions that lave their own latex commands
-(defvar litex-latex-functions '(sin cos tan))
+(defvar litex-latex-functions '(sin cos tan)
+  "Lisp functions that have their own latex commands")
+(defvar litex-make-hyphenated-to-subscript t
+  "Whether to make the hyphenated variables subscript or not")
+(defvar litex-latex-maybe-enclose? nil
+  "Enclose latex converted to paran if needed")
 
-;; whether to make the hyphenated variables subscript or not
-(defvar litex-make-hyphenated-to-subscript t)
+(defvar litex-format-float-string "%.3f"
+  "Format string to be used by floats")
+(defvar litex-format-float-upper-limit 1e4
+  "Upper limit of what number is formatted as float")
+(defvar litex-format-float-lower-limit 1e-2
+  "Lower limit of what number is formatted as float")
 
-;; enclose latex converted to paran
-(defvar litex-latex-maybe-enclose? nil)
+(defvar litex-steps-join-string "= "
+  "String used for joining strings in steps of a solution")
+(defvar litex-steps-end-string " "
+  "String used at the end of each strings in steps of a solution")
 
-;; format string to be used by floats, and their limits
-(defvar litex-format-float-string "%.3f")
-(defvar litex-format-float-upper-limit 1e4)
-(defvar litex-format-float-lower-limit 1e-2)
+(defvar litex-math-inline-start "\\("
+  "Opening syntax for math inline environment")
+(defvar litex-math-inline-end "\\)"
+  "Closing syntax for math inline environment")
 
-;; used for joing strings in steps of solution
-(defvar litex-steps-join-string "= ")
-(defvar litex-steps-end-string " ")
+(defvar litex-math-equation-start "\\begin{equation}\n"
+  "Opening syntax for math equation environment")
+(defvar litex-math-equation-end "\n\\end{equation}\n"
+  "Closing syntax for math equation environment")
+(defvar litex-math-steps-equation-join-string "= "
+  "Value of `litex-steps-join-string' to be used in equation environment")
+(defvar litex-math-steps-equation-end-string " "
+  "Value of `litex-steps-end-string' to be used in equation environment")
 
-;; math inlin environment to use.
-(defvar litex-math-inline-start "\\(")
-(defvar litex-math-inline-end "\\)")
-
-;; math equation environment to use and strings to join the solutions.
-(defvar litex-math-equation-start "\\begin{equation}\n")
-(defvar litex-math-equation-end "\n\\end{equation}\n")
-(defvar litex-math-steps-equation-join-string "= ")
-(defvar litex-math-steps-equation-end-string " ")
-
-;; math eqnarray environment to use and strings to join the solutions.
-(defvar litex-math-eqnarray-start "\\begin{eqnarray*}\n")
-(defvar litex-math-eqnarray-end "\n\\end{eqnarray*}\n")
-(defvar litex-math-steps-eqnarray-join-string " &=& ")
-(defvar litex-math-steps-eqnarray-end-string "\\\\\n")
+(defvar litex-math-eqnarray-start "\\begin{eqnarray*}\n"
+  "Opening syntax for math eqnarray environment")
+(defvar litex-math-eqnarray-end "\n\\end{eqnarray*}\n"
+  "Closing syntax for math eqnarray environment")
+(defvar litex-math-steps-eqnarray-join-string " &=& "
+  "Value of `litex-steps-join-string' to be used in eqnarray environment")
+(defvar litex-math-steps-eqnarray-end-string "\\\\\n"
+  "Value of `litex-steps-end-string' to be used in eqnarray environment")
 
 
 (defun litex-format-float (val)
@@ -80,6 +88,7 @@
 
 
 (defun litex-format-variable (var)
+  "Format variable VAR for LaTeX"
   (let ((var-str (prin1-to-string var)))
     (if litex-make-hyphenated-to-subscript
 	(while (string-match "\\([^-]+\\)[-]\\(.*\\)" var-str)
@@ -98,15 +107,16 @@
       latex)))
 
 
-
 ;; formatting functions to be called by litex-lisp2latex-all
 ;; each one corresponds to the function at the end with args as arguments.
 (defun litex-format-args-+ (args)
+  "Formatting function for + operator"
   (let ((litex-latex-maybe-enclose? t))
        (mapconcat #'litex-lisp2latex-all args " + ")))
 
 
 (defun litex-format-args-- (args)
+  "Formatting function for - operator"
   (let ((arg1 (car args))
 	(arg-rest (cdr args)))
   (if arg-rest
@@ -116,6 +126,7 @@
 
 
 (defun litex-format-args-* (args)
+  "Formatting function for * operator"
   (let ((litex-latex-maybe-enclose? t))
    (with-output-to-string
        (cl-loop for (me next . rest) on args do
@@ -124,6 +135,7 @@
 		  (princ (format "%s" (litex-latex-maybe-enclose me))))))))
 
 (defun litex-format-args-/ (args)
+  "Formatting function for / operator"
   (let ((arg1 (car args))
 	(arg-rest (cdr args)))
   (if arg-rest
@@ -134,10 +146,12 @@
 
 
 (defun litex-format-args-1+ (args)
+  "Formatting function for 1+ operator"
   (concat (litex-lisp2latex-all (car args)) " + 1"))
 
 
 (defun litex-format-args-expt (args)
+  "Formatting function for expt function"
   (let ((base (car args))
 	(power (cadr args)))
    (if (listp base)
@@ -146,17 +160,24 @@
 
 
 (defun litex-format-args-sqrt (args)
+  "Formatting function for sqrt function"
   (format "\\sqrt{%s}" (litex-lisp2latex-all (car args))))
 
 
 (defun litex-format-args-setq (args)
+  "Formatting function for setq function"
   (with-output-to-string
     (cl-loop for (a b . rest) on args by #'cddr do
 	     (princ (format "%s = %s" (litex-lisp2latex-all a) (litex-lisp2latex-all b)))
 	     (when rest (princ "; ")))))
 
 
+(setf (symbol-function 'litex-format-args-local-setq)
+      #'litex-format-args-setq)
+
+
 (defun litex-format-args-defun (args)
+  "Formatting function for defun function"
   (let ((func-name (car args))
 	   (fargs (cadr args))
 	   (expr (caddr args)))
@@ -167,6 +188,7 @@
 
 
 (defun litex-format-args-default (func args)
+  "Default Formatting function, Call corresponding formatting function if available for FUNC passing ARGS as argument, else make a general format."
   (let ((func-symbol (intern (format "litex-format-args-%s" func))))
     (if (functionp func-symbol)
 	(apply func-symbol (list args))
@@ -207,14 +229,17 @@
 
 (defun litex-substitute-values (expression)
   "Gives a string from EXPRESSION substituting the values."
-  (if (functionp expression)
+  (condition-case err
+   (if (functionp expression)
       (format "%s" expression)
     (if (symbolp expression)
 	(format "%s" (eval expression))
       (if (consp expression)
 	  (format "(%s)"
 		  (mapconcat #'litex-substitute-values expression " "))
-	(prin1-to-string expression)))))
+	(prin1-to-string expression))))
+   ;; this will catch error for undefined variables.
+   (void-variable (prin1-to-string expression))))
 
 
 (defun litex-solve-single-step (form)
@@ -436,6 +461,7 @@ Argument END end position of region."
 (define-key litex-key-map (kbd "e") 'litex-eval-and-insert)
 (define-key litex-key-map (kbd "s") 'litex-sexp-to-latex-exp)
 (define-key litex-key-map (kbd "S") 'litex-sexp-solve-all-steps)
+(define-key litex-key-map (kbd "r") 'litex-sexp-replace-variables)
 (define-key litex-key-map (kbd "+") 'litex-increment-number)
 (define-key litex-key-map (kbd "l") 'litex-exp-to-latex)
 (define-key litex-key-map (kbd "m") 'litex-exp-in-latex-math)
