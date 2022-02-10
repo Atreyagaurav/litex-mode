@@ -315,7 +315,7 @@
   (pcase expression
     (`(setq ,var ,exp)
      (concat
-      (format (concat "%s" litex-steps-join-string) var)
+      (format "%s%s" var litex-steps-join-string)
       (mapconcat format-func (litex-solve-all-steps exp)
 		 (concat litex-steps-end-string litex-steps-join-string))))
     (_ (mapconcat format-func (litex-solve-all-steps expression)
@@ -338,10 +338,10 @@
   (interactive)
   (backward-kill-sexp)
   (condition-case nil
-      (insert (concat (current-kill 0)
-		      litex-steps-join-string
-		      (format "%s"
-			      (eval (read (current-kill 0))))))
+      (insert (current-kill 0)
+	      litex-steps-join-string
+	      (format "%s"
+		      (eval (read (current-kill 0)))))
     (error (message "Invalid expression"))))
 
 
@@ -447,7 +447,7 @@ Argument END end position of region."
                    (list (region-beginning) (region-end))
                  (let ((bnd (bounds-of-thing-at-point 'symbol)))
 		   (list (cl-first bnd) (cl-rest bnd)))))
-  (let ((fmt  (read-string "Enter format string:"
+  (let ((fmt  (read-string "Enter format string: "
 			   litex-format-float-string)))
     (setq litex-format-float-string fmt)
     (litex-format-region-last beg end)))
@@ -469,11 +469,11 @@ Argument END end position of region."
 		 word)))
 	(when ma
 	  (delete-region (car bounds) (cdr bounds))
-	  (insert (concat
+	  (insert 
 		   (match-string 1 word)
 		   (number-to-string (+ step (string-to-number
 					      (match-string 2 word))))
-		   (match-string 3 word))))))))
+		   (match-string 3 word)))))))
 
 
 
@@ -495,19 +495,21 @@ Argument END end position of region."
 
 
 ;; you can choose to apply this keymap to some other key.
-(defvar litex-key-map (make-sparse-keymap))
-(define-key litex-key-map (kbd "F") 'litex-format-region)
-(define-key litex-key-map (kbd "f") 'litex-format-region-last)
-(define-key litex-key-map (kbd "E") 'litex-eval-and-replace)
-(define-key litex-key-map (kbd "e") 'litex-eval-and-insert)
-(define-key litex-key-map (kbd "s") 'litex-sexp-to-latex-exp)
-(define-key litex-key-map (kbd "S") 'litex-sexp-solve-all-steps)
-(define-key litex-key-map (kbd "r") 'litex-sexp-replace-variables)
-(define-key litex-key-map (kbd "+") 'litex-increment-number)
-(define-key litex-key-map (kbd "l") 'litex-exp-to-latex)
-(define-key litex-key-map (kbd "m") 'litex-exp-in-latex-math)
-(define-key litex-key-map (kbd "A") 'litex-solve-all-steps-equation)
-(define-key litex-key-map (kbd "a") 'litex-solve-all-steps-eqnarray)
+(defvar litex-key-map
+  (let ((keymap (make-sparse-keymap)))
+    (define-key keymap (kbd "F") 'litex-format-region)
+    (define-key keymap (kbd "f") 'litex-format-region-last)
+    (define-key keymap (kbd "E") 'litex-eval-and-replace)
+    (define-key keymap (kbd "e") 'litex-eval-and-insert)
+    (define-key keymap (kbd "s") 'litex-sexp-to-latex-exp)
+    (define-key keymap (kbd "S") 'litex-sexp-solve-all-steps)
+    (define-key keymap (kbd "r") 'litex-sexp-replace-variables)
+    (define-key keymap (kbd "+") 'litex-increment-number)
+    (define-key keymap (kbd "l") 'litex-exp-to-latex)
+    (define-key keymap (kbd "m") 'litex-exp-in-latex-math)
+    (define-key keymap (kbd "A") 'litex-solve-all-steps-equation)
+    (define-key keymap (kbd "a") 'litex-solve-all-steps-eqnarray)
+    keymap))
 
 ;; can be used directly
 (define-key litex-mode-map (kbd "×") 'litex-insert-or-replace-x)
