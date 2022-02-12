@@ -1,6 +1,6 @@
 \input texinfo    @c -*- texinfo -*-
 @c %**start of header
-@setfilename README.info
+@setfilename litex-mode.info
 @settitle 
 @documentencoding UTF-8
 @documentlanguage en
@@ -20,9 +20,12 @@
 
 @menu
 * Li@TeX{} mode::
+* How to Use::
 * Keybindings::
 * Explanation for functions::
+* Customization::
 * Configuration::
+* Contributing::
 
 @detailmenu
 --- The Detailed Node Listing ---
@@ -73,7 +76,7 @@ Suppose we have this in a text file, we have all the variables and the formula a
 
    Energy balance method:
    (setq E_r (/ (- R_n H_s G) l_v ρ_w))
- 
+
    Where,
    (setq l_v (- 2500 (* 2.36 T))) kJ/kg
    (setq l_v (* l_v 1e3)) J/kg
@@ -96,7 +99,7 @@ After evaluating all expressions, we can get the values, while we can also conve
 
    Energy balance method:
    E_r = \frac@{R_n - H_s - G@}@{l_v ρ_w @}
- 
+
    Where,
    l_v = 2500 - 2.360 T  = 2500 - 2.360 \times 28.500  = 2500 - 67.260 = 2432.74 kJ/kg
    l_v = l_v \times 1000  = 2432740.0 J/kg
@@ -109,6 +112,15 @@ After evaluating all expressions, we can get the values, while we can also conve
 
 So not only can it convert lisp expressions to latex, it can also, give intermediate solution steps. Perfect for doing homeworks (as that's what I made it for) :P
 
+
+@node How to Use
+@chapter How to Use
+
+Here is a @uref{https://youtu.be/esEf63gSSPg, demo video} describing the features of Li@TeX{} mode.
+
+For Text descriptions refer sections below for details on what each function does, and the meaning of custom variables.
+
+You can also access it all from texinfo file provided with the package.
 
 @node Keybindings
 @chapter Keybindings
@@ -236,6 +248,71 @@ y &=& 2 + 3 + 6 x \\
 \end@{eqnarray*@}
 @end example
 
+@node Customization
+@chapter Customization
+
+There are lots of variables that define how each of these functions behave.
+
+@multitable {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
+@headitem Variable Name
+@tab Default Value
+@tab What it does
+@item litex-latex-functions
+@tab '(sin cos tan)
+@tab Lisp functions that have their own latex commands.
+@item litex-make-hyphenated-to-subscript
+@tab t
+@tab Whether to make the hyphenated variables subscript or not.
+@item litex-latex-maybe-enclose?
+@tab nil
+@tab Enclose latex converted to paran if needed.
+@item litex-format-float-string
+@tab "%.3f"
+@tab Format string to be used by floats.
+@item litex-format-float-upper-limit
+@tab 1e4
+@tab Upper limit of what number is formatted as float.
+@item litex-format-float-lower-limit
+@tab 1e-2
+@tab Lower limit of what number is formatted as float.
+@item litex-steps-join-string
+@tab "= "
+@tab String used for joining strings in steps of a solution.
+@item litex-steps-end-string
+@tab " "
+@tab String used at the end of each strings in steps of a solution.
+@item litex-math-inline-start
+@tab "\\("
+@tab Opening syntax for math inline environment.
+@item litex-math-inline-end
+@tab "\\)"
+@tab Closing syntax for math inline environment.
+@item litex-math-equation-start
+@tab "\"
+@tab Opening syntax for math equation environment.
+@item litex-math-equation-end
+@tab "\"
+@tab Closing syntax for math equation environment.
+@item litex-math-steps-equation-join-string
+@tab "= "
+@tab Value of `litex-steps-join-string' to be used in equation environment.
+@item litex-math-steps-equation-end-string
+@tab " "
+@tab Value of `litex-steps-end-string' to be used in equation environment.
+@item litex-math-eqnarray-start
+@tab "\"
+@tab Opening syntax for math eqnarray environment.
+@item litex-math-eqnarray-end
+@tab "\"
+@tab Closing syntax for math eqnarray environment.
+@item litex-math-steps-eqnarray-join-string
+@tab " &=& "
+@tab Value of `litex-steps-join-string' to be used in eqnarray environment.
+@item litex-math-steps-eqnarray-end-string
+@tab "\\\\"
+@tab Value of `litex-steps-end-string' to be used in eqnarray environment.
+@end multitable
+
 @node Configuration
 @chapter Configuration
 
@@ -251,5 +328,21 @@ Sample configuration using @code{use-package} I use is as follows:
   :config (local-set-key (kbd "C-e") litex-key-map)
   )
 @end lisp
+
+@node Contributing
+@chapter Contributing
+
+Since this package is new, I'd appreciate contributions on few things:
+
+@itemize
+@item
+There are many tests to be written for the functions.
+@item
+Many functions that might have special syntax in @LaTeX{} yet to be written. For example @code{1+}, @code{defun} were added later (it only started with 4 operators), similar could be done for many more.
+@item
+Fixing some glitches with the current functions.
+@item
+Maybe some symbolic calculations using @code{calc-eval} if it has variables that are not yet defined.
+@end itemize
 
 @bye
