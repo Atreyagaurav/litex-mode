@@ -20,7 +20,7 @@
 
    Energy balance method:
    (setq E_r (/ (- R_n H_s G) l_v ρ_w))
- 
+
    Where,
    (setq l_v (- 2500 (* 2.36 T))) kJ/kg
    (setq l_v (* l_v 1e3)) J/kg
@@ -43,7 +43,7 @@ After evaluating all expressions, we can get the values, while we can also conve
 
    Energy balance method:
    E_r = \frac{R_n - H_s - G}{l_v ρ_w }
- 
+
    Where,
    l_v = 2500 - 2.360 T  = 2500 - 2.360 \times 28.500  = 2500 - 67.260 = 2432.74 kJ/kg
    l_v = l_v \times 1000  = 2432740.0 J/kg
@@ -60,6 +60,13 @@ Improvement over [[https://github.com/Atreyagaurav/emacs-modules][Calt-mode]]:
 
 [[./images/litex.png]]
 
+* How to Use
+
+  Here is a [[https://youtu.be/esEf63gSSPg][demo video]] describing the features of LiTeX mode.
+
+  For Text descriptions refer sections below for details on what each function does, and the meaning of custom variables.
+
+  You can also access it all from texinfo file provided with the package.
 
 * Keybindings
 
@@ -77,7 +84,7 @@ Improvement over [[https://github.com/Atreyagaurav/emacs-modules][Calt-mode]]:
 (define-key litex-key-map (kbd "a") 'litex-sexp-solve-all-steps-eqnarray)
   #+end_src
 
-  
+
 * Explanation for functions
 
 ** litex-format-region-last
@@ -101,13 +108,13 @@ Improvement over [[https://github.com/Atreyagaurav/emacs-modules][Calt-mode]]:
 ** litex-sexp-to-latex-exp
    Converts valid lisp sexp to latex Expression:
 
-   For example: ~(+ 2 3 (* 6 x))~ ⇒ ~2 + 3 + 6 x~ 
+   For example: ~(+ 2 3 (* 6 x))~ ⇒ ~2 + 3 + 6 x~
 
 ** litex-sexp-solve-all-steps
    Solves lisp sexp steps by steps:
 
    For example:
-   ~(setq x 5)~ ⇒ ~x = 5~ then ~(setq y (+ 2 3 (* 6 x)))~ ⇒ ~y = (+ 2 3 (* 6 x))  = (+ 2 3 (* 6 5))  = (+ 2 3 30)  = 35~ 
+   ~(setq x 5)~ ⇒ ~x = 5~ then ~(setq y (+ 2 3 (* 6 x)))~ ⇒ ~y = (+ 2 3 (* 6 x))  = (+ 2 3 (* 6 5))  = (+ 2 3 30)  = 35~
 
 ** litex-increment-number
    Increments the number.
@@ -123,7 +130,7 @@ Improvement over [[https://github.com/Atreyagaurav/emacs-modules][Calt-mode]]:
 ** litex-exp-in-latex-math
    Encloses the selection in latex inline math.
 
-   ~1.23e-34~ ⇒ ~\(1.23e-34\)~ 
+   ~1.23e-34~ ⇒ ~\(1.23e-34\)~
 
 ** litex-sexp-solve-all-steps-equation
    Same as ~litex-sexp-solve-all-steps~ but puts them in equation environment.
@@ -139,7 +146,7 @@ y= 2 + 3 + 6 x  = 2 + 3 + 6 \times 5  = 2 + 3 + 30 = 35
 ** litex-sexp-solve-all-steps-eqnarray
    Same as ~litex-sexp-solve-all-steps~ but puts them in eqnarray* environment.
 
-   
+
    For example: ~(setq y (+ 2 3 (* 6 x)))~ ⇒
 
    #+begin_example
@@ -151,11 +158,37 @@ y &=& 2 + 3 + 6 x \\
 \end{eqnarray*}
    #+end_example
 
+
+* Customization
+  There are lots of variables that define how each of these functions behave.
+
+| Variable Name                         | Default Value          | What it does                                                            |
+|---------------------------------------+------------------------+-------------------------------------------------------------------------|
+| litex-latex-functions                 | '(sin cos tan)         | Lisp functions that have their own latex commands.                     |
+| litex-make-hyphenated-to-subscript    | t                      | Whether to make the hyphenated variables subscript or not.             |
+| litex-latex-maybe-enclose?            | nil                    | Enclose latex converted to paran if needed.                            |
+| litex-format-float-string             | "%.3f"                 | Format string to be used by floats.                                    |
+| litex-format-float-upper-limit        | 1e4                    | Upper limit of what number is formatted as float.                      |
+| litex-format-float-lower-limit        | 1e-2                   | Lower limit of what number is formatted as float.                      |
+| litex-steps-join-string               | "= "                   | String used for joining strings in steps of a solution.                |
+| litex-steps-end-string                | " "                    | String used at the end of each strings in steps of a solution.         |
+| litex-math-inline-start               | "\\("                  | Opening syntax for math inline environment.                            |
+| litex-math-inline-end                 | "\\)"                  | Closing syntax for math inline environment.                            |
+| litex-math-equation-start             | "\\begin{equation}\n"  | Opening syntax for math equation environment.                          |
+| litex-math-equation-end               | "\n\\end{equation}\n"  | Closing syntax for math equation environment.                          |
+| litex-math-steps-equation-join-string | "= "                   | Value of `litex-steps-join-string' to be used in equation environment. |
+| litex-math-steps-equation-end-string  | " "                    | Value of `litex-steps-end-string' to be used in equation environment.  |
+| litex-math-eqnarray-start             | "\\begin{eqnarray*}\n" | Opening syntax for math eqnarray environment.                          |
+| litex-math-eqnarray-end               | "\n\\end{eqnarray*}\n" | Closing syntax for math eqnarray environment.                          |
+| litex-math-steps-eqnarray-join-string | " &=& "                | Value of `litex-steps-join-string' to be used in eqnarray environment. |
+| litex-math-steps-eqnarray-end-string  | "\\\\\n"               | Value of `litex-steps-end-string' to be used in eqnarray environment.  |
+
+
 * Configuration
     Clone the repo into your machine and add the path to ~load-path~, or just load the individual module you want to add.
 
     Sample configuration using ~use-package~ I use is as follows:
-    
+
 #+begin_src emacs-lisp :tangle yes
 (use-package litex-mode
   :load-path "~/.emacs.d/myfunc/litex-mode/"

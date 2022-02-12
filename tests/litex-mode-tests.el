@@ -48,7 +48,9 @@
     (should (string= (litex-format-args-* '(1 2)) "1 \\times 2"))
     (should (string= (litex-format-args-* '(x 2)) "x \\times 2"))
     (should (string= (litex-format-args-* '(2 y)) "2y"))
-    (should (string= (litex-format-args-* '(x y)) "xy")))
+    (should (string= (litex-format-args-* '(x y)) "xy"))
+    (should (string= (litex-format-args-* '(2 yz)) "2 \\times yz"))
+    (should (string= (litex-format-args-* '(xy y)) "xy \\times y")))
 
 
 (ert-deftest litex-format-args-/-test ()
