@@ -152,7 +152,11 @@
 		(let* ((enclose? (litex-latex-enclose-check-args me))
 		       (arg1-format (if enclose? "(%s)" "%s"))
 		       (litex-latex-maybe-enclose? enclose?))
-		  (if (numberp next)
+		  (if (and next (or (and (symbolp me)
+			       (> (length (prin1-to-string me)) 1))
+			  (and (symbolp next)
+			       (> (length (prin1-to-string next)) 1))
+			  (numberp next)))
                     (princ (concat (format arg1-format
 				   (litex-latex-maybe-enclose me)) " \\times "))
 		  (princ (format arg1-format
@@ -211,8 +215,8 @@
   (let ((func-name (car args))
 	   (fargs (cadr args))
 	   (expr (caddr args)))
-       (format "%s(%s):%s"
-	       func-name
+       (format "\\mathrm{%s}(%s):%s"
+	       (litex-format-variable func-name)
 	       (mapconcat #'prin1-to-string fargs ",")
 	       (litex-lisp2latex-all expr))))
 
