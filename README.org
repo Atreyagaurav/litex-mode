@@ -191,11 +191,12 @@ y &=& 2 + 3 + 6 x \\
 
 #+begin_src emacs-lisp :tangle yes
 (use-package litex-mode
-  :load-path "~/.emacs.d/myfunc/litex-mode/"
+  ;; :load-path "~/.emacs.d/myfunc/litex-mode/"
   :commands litex-mode
   :hook text-mode
-  :config (local-set-key (kbd "C-e") litex-key-map)
-  )
+  :config
+  (local-set-key (kbd "C-e") litex-key-map)
+  (local-set-key (kbd "×") 'litex-insert-or-replace-x))
 #+end_src
 
 * Contributing
