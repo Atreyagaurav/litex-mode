@@ -41,6 +41,8 @@
   "Whether to make the hyphenated variables subscript or not.")
 (defvar litex-latex-maybe-enclose? nil
   "Enclose latex converted to paran if needed.")
+(defvar litex-keep-sexp-in-buffer nil
+  "Keep the last sexp on point if true, else replace it.")
 
 (defvar litex-format-float-string "%.3f"
   "Format string to be used by floats.")
@@ -78,6 +80,7 @@
   "Value of `litex-steps-end-string' to be used in eqnarray environment.")
 
 
+
 (defun litex-format-float (val)
   "Function that defines how float VAL is formatted in lisp2latex."
   (if (or (< val litex-format-float-lower-limit) (> val litex-format-float-upper-limit))
@@ -85,6 +88,17 @@
              (front (/ val (expt 10 exponent))))
         (format (concat litex-format-float-string " \\times 10^{%d}") front exponent))
     (format litex-format-float-string val)))
+
+
+(defun litex-read-sexp-maybe-kill ()
+  (interactive)
+  (let ((expr (sexp-at-point)))
+  (if (not litex-keep-sexp-in-buffer)
+      (backward-kill-sexp)
+    ;; should I do it here or check if it's a comment and only do
+    ;; that later. or copy the things after the sexp till EOL.
+    (or (end-of-line) (insert "\n")))
+  expr))
 
 
 (defun litex-format-variable (var)
@@ -375,22 +389,19 @@ Argument END end position of region."
 (defun litex-sexp-to-latex-exp ()
   "Convert valid sexp to latex expressions."
   (interactive)
-  (backward-kill-sexp)
-  (insert (litex-lisp2latex-all (read (current-kill 0)))))
+  (insert (litex-lisp2latex-all (litex-read-sexp-maybe-kill))))
 
 
 (defun litex-sexp-replace-variables ()
   "Replace the variable values in the last sexp at point."
   (interactive)
-  (backward-kill-sexp)
-  (insert (litex-substitute-values (read (current-kill 0)))))
+  (insert (litex-substitute-values (litex-read-sexp-maybe-kill))))
 
 
 (defun litex-sexp-solve-all-steps ()
   "Solve last sexp at point in steps and insert those steps."
   (interactive)
-  (backward-kill-sexp)
-  (let ((expression (read (current-kill 0))))
+  (let ((expression (litex-read-sexp-maybe-kill)))
     (insert
      (litex-sexp-to-solved-string expression #'prin1-to-string))))
 
@@ -398,8 +409,7 @@ Argument END end position of region."
 (defun litex-sexp-solve-single-step ()
   "Solve last sexp at point for one step and insert it."
   (interactive)
-  (backward-kill-sexp)
-  (let ((expression (read (current-kill 0))))
+  (let ((expression (litex-read-sexp-maybe-kill)))
     (insert
      (prin1-to-string (litex-solve-single-step expression)))))
 
@@ -407,8 +417,7 @@ Argument END end position of region."
 (defun litex-solve-all-steps-equation ()
   "Solve last sexp in steps and insert it in LaTeX equation environment."
   (interactive)
-  (backward-kill-sexp)
-  (let ((expression (read (current-kill 0)))
+  (let ((expression (litex-read-sexp-maybe-kill))
 	(litex-steps-join-string litex-math-steps-equation-join-string)
 	(litex-steps-end-string litex-math-steps-equation-end-string))
     (insert litex-math-equation-start)
@@ -420,8 +429,7 @@ Argument END end position of region."
 (defun litex-solve-all-steps-eqnarray ()
   "Solve last sexp in steps and insert it in LaTeX eqnarray environment."
   (interactive)
-  (backward-kill-sexp)
-  (let ((expression (read (current-kill 0)))
+  (let ((expression (litex-read-sexp-maybe-kill))
 	(litex-steps-join-string litex-math-steps-eqnarray-join-string)
 	(litex-steps-end-string litex-math-steps-eqnarray-end-string))
     (insert litex-math-eqnarray-start)
@@ -431,7 +439,8 @@ Argument END end position of region."
 
 
 (defun litex-format-region-last (beg end)
-  "Format selected region as per format of last call to `litex-format-region`,BEG and END are region bounds."
+  "Format selected region as per format of last call to
+`litex-format-region`,BEG and END are region bounds."
   (interactive (if (use-region-p)
                    (list (region-beginning) (region-end))
                  (let ((bnd (bounds-of-thing-at-point 'sexp)))
