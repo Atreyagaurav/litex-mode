@@ -81,6 +81,16 @@
 (defvar litex-math-steps-eqnarray-end-string "\\\\\n"
   "Value of `litex-steps-end-string' to be used in eqnarray environment.")
 
+(defvar litex-math-align-start "\\begin{align*}\n"
+  "Opening syntax for math align environment.")
+(defvar litex-math-align-end "\n\\end{align*}\n"
+  "Closing syntax for math align environment.")
+(defvar litex-math-steps-align-join-string "& = "
+  "Value of `litex-steps-join-string' to be used in align environment.")
+(defvar litex-math-steps-align-end-string "\\\\\n"
+  "Value of `litex-steps-end-string' to be used in align environment.")
+
+
 
 
 (defun litex-format-float (val)
@@ -443,10 +453,9 @@ Argument END end position of region."
   (let ((expression (litex-read-sexp-maybe-kill))
 	(litex-steps-join-string litex-math-steps-equation-join-string)
 	(litex-steps-end-string litex-math-steps-equation-end-string))
-    (insert litex-math-equation-start)
-    (insert
-     (litex-sexp-to-solved-string expression #'litex-lisp2latex-all))
-    (insert litex-math-equation-end)))
+    (insert litex-math-equation-start
+	    (litex-sexp-to-solved-string expression #'litex-lisp2latex-all)
+	    litex-math-equation-end)))
 
 
 (defun litex-solve-all-steps-eqnarray ()
@@ -455,10 +464,20 @@ Argument END end position of region."
   (let ((expression (litex-read-sexp-maybe-kill))
 	(litex-steps-join-string litex-math-steps-eqnarray-join-string)
 	(litex-steps-end-string litex-math-steps-eqnarray-end-string))
-    (insert litex-math-eqnarray-start)
-    (insert
-     (litex-sexp-to-solved-string expression #'litex-lisp2latex-all))
-    (insert litex-math-eqnarray-end)))
+    (insert litex-math-eqnarray-start
+	    (litex-sexp-to-solved-string expression #'litex-lisp2latex-all)
+	    litex-math-eqnarray-end)))
+
+
+(defun litex-solve-all-steps-align ()
+  "Solve last sexp in steps and insert it in LaTeX align environment."
+  (interactive)
+  (let ((expression (litex-read-sexp-maybe-kill))
+	(litex-steps-join-string litex-math-steps-align-join-string)
+	(litex-steps-end-string litex-math-steps-align-end-string))
+    (insert litex-math-align-start
+	    (litex-sexp-to-solved-string expression #'litex-lisp2latex-all)
+	    litex-math-align-end)))
 
 
 (defun litex-format-region-last (beg end)
@@ -541,7 +560,8 @@ otherwise insert \times instead of ×."
     (define-key keymap (kbd "l") 'litex-exp-to-latex)
     (define-key keymap (kbd "m") 'litex-exp-in-latex-math)
     (define-key keymap (kbd "A") 'litex-solve-all-steps-equation)
-    (define-key keymap (kbd "a") 'litex-solve-all-steps-eqnarray)
+    (define-key keymap (kbd "a") 'litex-solve-all-steps-align)
+    (define-key keymap (kbd "C-a") 'litex-solve-all-steps-eqnarray)
     keymap))
 
 (define-minor-mode litex-mode
