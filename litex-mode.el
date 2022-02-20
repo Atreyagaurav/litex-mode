@@ -79,7 +79,23 @@
 (defvar litex-math-steps-eqnarray-end-string "\\\\\n"
   "Value of `litex-steps-end-string' to be used in eqnarray environment.")
 
+;; (defvar litex-use-slime-inferior-process nil
+;;   "Whether to use slime process for evalulation or not.")
 
+;; (defvar litex-slime-process nil
+;;   "Variable to store litex slime process.")
+
+
+;; I was thinking something simple as this function but it doesn't
+;; work. Need to find how to make slime eval the sexp and get the
+;; result.
+
+(defun litex-eval (expr)
+  ;; (if litex-use-slime-inferior-process
+  ;;     (slime-eval (prin1-to-string expr))
+    (eval expr))
+
+;; Formatting functions
 (defun litex-format-float (val)
   "Function that defines how float VAL is formatted in lisp2latex."
   (if (or (< val litex-format-float-lower-limit)
@@ -283,7 +299,7 @@ argument, else make a general format."
    (if (functionp expression)
       (format "%s" expression)
     (if (symbolp expression)
-	(format "%s" (eval expression))
+	(format "%s" (litex-eval expression))
       (if (consp expression)
 	  (format "(%s)"
 		  (mapconcat #'litex-substitute-values expression " "))
@@ -296,7 +312,7 @@ argument, else make a general format."
   "Solves a single step of calculation in FORM."
   (cond ((listp form)
          (if (cl-every #'numberp (cl-rest form))
-             (eval form)
+             (litex-eval form)
            (cons (cl-first form)
 		 (mapcar #'litex-solve-single-step (cl-rest form)))))
 	((functionp form)
@@ -353,7 +369,7 @@ retuns a list of steps."
   (interactive)
   (backward-kill-sexp)
   (condition-case nil
-      (prin1 (eval (read (current-kill 0)))
+      (prin1 (litex-eval (read (current-kill 0)))
              (current-buffer))
     (error (message "Invalid expression")
            (insert (current-kill 0)))))
@@ -367,7 +383,7 @@ retuns a list of steps."
       (insert (current-kill 0)
 	      litex-steps-join-string
 	      (format "%s"
-		      (eval (read (current-kill 0)))))
+		      (litex-eval (read (current-kill 0)))))
     (error (message "Invalid expression"))))
 
 
@@ -461,9 +477,9 @@ Argument END end position of region."
                  (let ((bnd (bounds-of-thing-at-point 'sexp)))
 		   (list (cl-first bnd) (cl-rest bnd)))))
   (let ((text (buffer-substring-no-properties beg end)))
-    ;; maybe I should make it eval if given expression
+    ;; maybe I should make it litex-eval if given expression
     (if (string-match-p "%[0-9.]*[dfex]" litex-format-float-string)
-	(setq text (eval (read text))))
+	(setq text (litex-eval (read text))))
     (kill-region beg end)
     (insert (format litex-format-float-string text))))
 
