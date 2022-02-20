@@ -25,10 +25,12 @@
 ;;; Commentary:
 
 ;; converts valid mathematical Lisp expressions to LaTeX snippets
-;; improved from https://emacs.stackexchange.com/a/70360
-;; modified with help from https://gist.github.com/bpanthi977/4b8ece0eeff3bc05bb82275a23cbb56d
+;; improved from https://emacs.stackexchange.com/a/70360 modified with
+;; help from
+;; https://gist.github.com/bpanthi977/4b8ece0eeff3bc05bb82275a23cbb56d
 
-;; For detailed help visit github page:  https://github.com/Atreyagaurav/litex-mode
+;; For detailed help visit github page:
+;; https://github.com/Atreyagaurav/litex-mode
 
 ;;; Code:
 (eval-when-compile (require 'pcase))
@@ -83,10 +85,12 @@
 
 (defun litex-format-float (val)
   "Function that defines how float VAL is formatted in lisp2latex."
-  (if (or (< val litex-format-float-lower-limit) (> val litex-format-float-upper-limit))
+  (if (or (< val litex-format-float-lower-limit)
+	  (> val litex-format-float-upper-limit))
       (let* ((exponent (floor (log val 10)))
              (front (/ val (expt 10 exponent))))
-        (format (concat litex-format-float-string " \\times 10^{%d}") front exponent))
+        (format (concat litex-format-float-string
+			" \\times 10^{%d}") front exponent))
     (format litex-format-float-string val)))
 
 
@@ -171,8 +175,10 @@
 			  (and (symbolp next)
 			       (> (length (prin1-to-string next)) 1))
 			  (numberp next)))
-                    (princ (concat (format arg1-format
-				   (litex-latex-maybe-enclose me)) " \\times "))
+                      (princ (concat
+			      (format arg1-format
+				      (litex-latex-maybe-enclose me))
+			      " \\times "))
 		  (princ (format arg1-format
 				 (litex-latex-maybe-enclose me))))))))
 
@@ -203,8 +209,12 @@
   (let ((base (car args))
 	(power (cadr args)))
    (if (listp base)
-         (format "(%s)^{%s}" (litex-lisp2latex-all base) (litex-lisp2latex-all power))
-     (format "%s^{%s}"  (litex-lisp2latex-all base) (litex-lisp2latex-all power)))))
+       (format "(%s)^{%s}"
+	       (litex-lisp2latex-all base)
+	       (litex-lisp2latex-all power))
+     (format "%s^{%s}"
+	     (litex-lisp2latex-all base)
+	     (litex-lisp2latex-all power)))))
 
 
 (defun litex-format-args-sqrt (args)
@@ -216,7 +226,9 @@
   "Formatting function for setq function called with ARGS."
   (with-output-to-string
     (cl-loop for (a b . rest) on args by #'cddr do
-	     (princ (format "%s = %s" (litex-lisp2latex-all a) (litex-lisp2latex-all b)))
+	     (princ (format "%s = %s"
+			    (litex-lisp2latex-all a)
+			    (litex-lisp2latex-all b)))
 	     (when rest (princ "; ")))))
 
 
@@ -236,7 +248,9 @@
 
 
 (defun litex-format-args-default (func args)
-  "Default Formatting function, Call corresponding called with ARGS formatting function if available for FUNC passing ARGS as argument, else make a general format."
+  "Default Formatting function, Call corresponding called with
+ARGS formatting function if available for FUNC passing ARGS as
+argument, else make a general format."
   (let ((func-symbol (intern (format "litex-format-args-%s" func))))
     (if (functionp func-symbol)
 	(let ((litex-latex-maybe-enclose?
@@ -248,7 +262,8 @@
                           (litex-latex-enclose-check-args args)))
             (format-string (concat (if known? "\\%s" "\\mathrm{%s}")
                                    (if enclose?  "(%s)" " %s"))))
-	(format format-string func (mapconcat #'litex-lisp2latex-all args ","))))))
+	(format format-string func
+		(mapconcat #'litex-lisp2latex-all args ","))))))
 
 
 (defun litex-lisp2latex-all (form)
@@ -296,7 +311,8 @@
   (cond ((listp form)
          (if (cl-every #'numberp (cl-rest form))
              (eval form)
-           (cons (cl-first form) (mapcar #'litex-solve-single-step (cl-rest form)))))
+           (cons (cl-first form)
+		 (mapcar #'litex-solve-single-step (cl-rest form)))))
 	((functionp form)
 	 form)
 
@@ -307,7 +323,8 @@
 
 
 (defun litex-solve-all-steps (form)
-  "Solves all the steps of calculations in FORM expression and retuns a list of steps."
+  "Solves all the steps of calculations in FORM expression and
+retuns a list of steps."
   (let
       ((solution (list form))) ;given expression
     (if
@@ -332,11 +349,17 @@
   (pcase expression
     (`(setq ,var ,exp)
      (concat
-      (format "%s%s" (litex-format-variable var) litex-steps-join-string)
-      (mapconcat format-func (litex-solve-all-steps exp)
-		 (concat litex-steps-end-string litex-steps-join-string))))
-    (_ (mapconcat format-func (litex-solve-all-steps expression)
-		  (concat litex-steps-end-string litex-steps-join-string)))))
+      (format "%s%s"
+	      (litex-format-variable var)
+	      litex-steps-join-string)
+      (mapconcat format-func
+		 (litex-solve-all-steps exp)
+		 (concat litex-steps-end-string
+			 litex-steps-join-string))))
+    (_ (mapconcat format-func
+		  (litex-solve-all-steps expression)
+		  (concat litex-steps-end-string
+			  litex-steps-join-string)))))
 
 
 (defun litex-eval-and-replace ()
@@ -490,7 +513,8 @@ Argument END end position of region."
 
 
 (defun litex-insert-or-replace-x (beg end)
-  "If a region (BEG to END) is selected, replace * by \times otherwise insert \times instead of ×."
+  "If a region (BEG to END) is selected, replace * by \times
+otherwise insert \times instead of ×."
   (interactive (if (use-region-p)
                    (list (region-beginning) (region-end))
                  (list (point) (point))))
@@ -500,13 +524,10 @@ Argument END end position of region."
     (when (re-search-backward "*" beg)
       (replace-match "\\\\times"))))
 
-(define-minor-mode litex-mode
-  "Minor mode for Calculations on lisp, and formatting on LaTeX."
-  :lighter " LiTeX"
-  :keymap (make-sparse-keymap))
 
-
-;; you can choose to apply this keymap to some other key.
+;; I'm not making a litex-mode-map because I don't want it to come by
+;; default, user can choose to apply this keymap to some other key as
+;; prefix key, like C-e in readme, or just map individual functions.
 (defvar litex-key-map
   (let ((keymap (make-sparse-keymap)))
     (define-key keymap (kbd "F") 'litex-format-region)
@@ -523,8 +544,9 @@ Argument END end position of region."
     (define-key keymap (kbd "a") 'litex-solve-all-steps-eqnarray)
     keymap))
 
-;; can be used directly
-(define-key litex-mode-map (kbd "×") 'litex-insert-or-replace-x)
+(define-minor-mode litex-mode
+  "Minor mode for Calculations on lisp, and formatting on LaTeX."
+  :lighter " LiTeX")
 
 
 (provide 'litex-mode)

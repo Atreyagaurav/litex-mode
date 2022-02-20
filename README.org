@@ -1,3 +1,5 @@
+[[https://melpa.org/#/litex-mode][file:https://melpa.org/packages/litex-mode-badge.svg]]
+
 * LiTeX mode
    This is a minor mode to convert valid elisp/lisp expressions to latex.
 
@@ -8,57 +10,13 @@
 - [[https://gist.github.com/bpanthi977/4b8ece0eeff3bc05bb82275a23cbb56d][Bibek's gist]]
 - [[https://github.com/Atreyagaurav/emacs-modules][My previous calculation template mode and first few versions of LiTeX]]
 
-   Suppose we have this in a text file, we have all the variables and the formula as lisp expressions.
-#+begin_example
-   Net radiation, (setq R_n 185) W/m²
-   Temperature, (setq T 28.5) °C
-   Relative Humidity, (setq Rh .55)
-   Air velocity at 2m height, (setq u_2 2.7) m/s
-   Atmospheric pressure, (setq p 101.3e3) Pa
-   Roughness height, (setq Z_0 0.03) cm
-   (setq Z_2 200) cm
-
-   Energy balance method:
-   (setq E_r (/ (- R_n H_s G) l_v ρ_w))
-
-   Where,
-   (setq l_v (- 2500 (* 2.36 T))) kJ/kg
-   (setq l_v (* l_v 1e3)) J/kg
-   From table 2.5.2
-   (setq ρ_w 996.4) kg/m³
-
-   Assume, (setq H_s 0 G 0)
-   (setq E_r (/ (- R_n H_s G) l_v ρ_w))
-#+end_example
-
-After evaluating all expressions, we can get the values, while we can also convert them to latex format like this:
-#+begin_example
-   Net radiation, R_n = 185 W/m²
-   Temperature, T = 28.5 °C
-   Relative Humidity, Rh = 0.55
-   Air velocity at 2m height, u_2 = 2.7 m/s
-   Atmospheric pressure, p = 1.01 \times 10^{5} Pa
-   Roughness height, Z_0 = 0.3 cm
-   Z_2 = 200 cm
-
-   Energy balance method:
-   E_r = \frac{R_n - H_s - G}{l_v ρ_w }
-
-   Where,
-   l_v = 2500 - 2.360 T  = 2500 - 2.360 \times 28.500  = 2500 - 67.260 = 2432.74 kJ/kg
-   l_v = l_v \times 1000  = 2432740.0 J/kg
-   From table 2.5.2
-   ρ_w = 996.400 kg/m³
-
-   Assume, H_s = 0; G = 0
-   E_r = \frac{R_n - H_s - G}{l_v ρ_w } = \frac{185 - 0 - 0}{2432.740 \times 996.400 } = \frac{185}{2432.740 \times 996.400 } = 7.63 \times 10^{-05}
-#+end_example
-
-So not only can it convert lisp expressions to latex, it can also, give intermediate solution steps. Perfect for doing homeworks (as that's what I made it for) :P
-
-Improvement over [[https://github.com/Atreyagaurav/emacs-modules][Calt-mode]]:
+For example if you look at this image you can see how just 1 lines of lisp expression can be converted to the final result of several lines of mathematical expression without even having to do any of the calculation.
 
 [[./images/litex.png]]
+
+Not only can it convert lisp expressions to latex, it can also, give intermediate solution steps. Perfect for doing homeworks (as that's what I made it for) :P
+
+NOTE: elisp uses integer calculations so ~(/ 1 2)~ is evaluated to 0, be careful of such pitfalls. For now ~(/ 1.0 2)~ is evaluated as ~0.5~, so I'd recommend using floats when you need floats, and I'm working on optional integration with slime which doesn't have this problem.
 
 * How to Use
 
@@ -68,7 +26,42 @@ Improvement over [[https://github.com/Atreyagaurav/emacs-modules][Calt-mode]]:
 
   You can also access it all from texinfo file provided with the package.
 
+* Installation
+  You can install it through melpa with ~M-x package-install litex-mode <ret>~.
+
+  Or you can clone this github repo and load it using path.
+
+  Configuration section shows how you can add the load path using ~use-package~. 
+
+* Usage
+    Using ~use-package~ you can do:
+
+#+begin_src emacs-lisp :tangle yes
+(use-package litex-mode
+  ;; :load-path "/path/to/litex-mode/"
+  :commands litex-mode
+  :hook text-mode)
+#+end_src
+
 * Keybindings
+  By default LiTeX-mode doesn't provide any keybindings, but it does have a variable containing bindings for the interactive functions that you can use. 
+
+  
+** Setting keybindings for individual functions
+   You can use ~local-set-key~ to bind individual functions to a key binding.
+#+begin_src emacs-lisp :tangle yes
+  (local-set-key (kbd "×") 'litex-insert-or-replace-x)
+#+end_src
+   
+** Setting the whole litex provided keybindings to a prefix key
+
+   You can set a prefix key (~C-e~ for me here) like in this example, which makes it so you can for example use ~litex-format-region-last~ using ~C-e f~ using the following in your config. In some cases you might have to unset key ~C-e~ because it's used to goto end of line, I'm replacing that because I don't use it (as ~End~ key does the same).
+   #+begin_src emacs-lisp :tangle yes
+  (local-set-key (kbd "C-e") litex-key-map)
+   #+end_src
+
+   
+Contents of litex-key-map are below.
 
   #+begin_src emacs-lisp :tangle yes
 (define-key litex-key-map (kbd "F") 'litex-format-region)
@@ -82,6 +75,19 @@ Improvement over [[https://github.com/Atreyagaurav/emacs-modules][Calt-mode]]:
 (define-key litex-key-map (kbd "m") 'litex-exp-in-latex-math)
 (define-key litex-key-map (kbd "A") 'litex-sexp-solve-all-steps-equation)
 (define-key litex-key-map (kbd "a") 'litex-sexp-solve-all-steps-eqnarray)
+  #+end_src
+
+  
+** Complete setup using use-package
+   This is the complete setup using use-package, if you installed from melpa. If you installed by cloning the repo, uncomment and provide the load path.
+  #+begin_src emacs-lisp :tangle yes
+(use-package litex-mode
+  ;; :load-path "/path/to/litex-mode/"
+  :commands litex-mode
+  :hook text-mode
+  :config
+  (local-set-key (kbd "C-e") litex-key-map)
+  (local-set-key (kbd "×") 'litex-insert-or-replace-x))
   #+end_src
 
 
@@ -184,23 +190,11 @@ y &=& 2 + 3 + 6 x \\
 | litex-math-steps-eqnarray-end-string  | "\\\\\n"               | Value of `litex-steps-end-string' to be used in eqnarray environment.  |
 
 
-* Configuration
-    Clone the repo into your machine and add the path to ~load-path~, or just load the individual module you want to add.
-
-    Sample configuration using ~use-package~ I use is as follows:
-
-#+begin_src emacs-lisp :tangle yes
-(use-package litex-mode
-  :load-path "~/.emacs.d/myfunc/litex-mode/"
-  :commands litex-mode
-  :hook text-mode
-  :config (local-set-key (kbd "C-e") litex-key-map)
-  )
-#+end_src
-
+  
 * Contributing
   Since this package is new, I'd appreciate contributions on few things:
 
+  - Finding bugs and reporting them in github issues.
   - There are many tests to be written for the functions.
   - Many functions that might have special syntax in LaTeX yet to be written. For example ~1+~, ~defun~ were added later (it only started with 4 operators), similar could be done for many more.
   - Fixing some glitches with the current functions.
