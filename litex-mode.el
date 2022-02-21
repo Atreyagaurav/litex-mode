@@ -115,14 +115,15 @@
 
 
 (defun litex-read-sexp-maybe-kill ()
+  "Read the sexp before point, kill it if `litex-keep-sexp-in-buffer' is nil."
   (interactive)
   (let ((expr (sexp-at-point)))
-  (if (not litex-keep-sexp-in-buffer)
-      (backward-kill-sexp)
-    ;; should I do it here or check if it's a comment and only do
-    ;; that later. or copy the things after the sexp till EOL.
-    (or (end-of-line) (insert "\n")))
-  expr))
+    (if (not litex-keep-sexp-in-buffer)
+	(backward-kill-sexp)
+      ;; should I do it here or check if it's a comment and only do
+      ;; that later. or copy the things after the sexp till EOL.
+      (or (end-of-line) (insert "\n")))
+    expr))
 
 
 (defun litex-format-variable (var)
@@ -161,11 +162,11 @@
 
 (defun litex-latex-enclose-check-function (func)
   "Check if we need to use parantheis for args based on FUNC."
-    (if (member func '(+ - * / 1+ 1-))
-	litex-latex-maybe-enclose?
-      (if (member func '(expt))
-	  t
-	nil)))
+  (if (member func '(+ - * / 1+ 1-))
+      litex-latex-maybe-enclose?
+    (if (member func '(expt))
+	t
+      nil)))
 
 
 ;; formatting functions to be called by litex-lisp2latex-all
@@ -173,46 +174,46 @@
 (defun litex-format-args-+ (args)
   "Formatting function for + operator called with ARGS."
   (let ((litex-latex-maybe-enclose? t))
-       (mapconcat #'litex-lisp2latex-all args " + ")))
+    (mapconcat #'litex-lisp2latex-all args " + ")))
 
 
 (defun litex-format-args-- (args)
   "Formatting function for - operator called with ARGS."
   (let ((arg1 (car args))
 	(arg-rest (cdr args)))
-  (if arg-rest
-         (format "%s - %s" (litex-lisp2latex-all arg1)
-                 (mapconcat #'litex-lisp2latex-all arg-rest " - "))
-    (format "-%s" (litex-lisp2latex-all arg1)))))
+    (if arg-rest
+        (format "%s - %s" (litex-lisp2latex-all arg1)
+                (mapconcat #'litex-lisp2latex-all arg-rest " - "))
+      (format "-%s" (litex-lisp2latex-all arg1)))))
 
 
 (defun litex-format-args-* (args)
   "Formatting function for * operator called with ARGS."
-   (with-output-to-string
-     (cl-loop for (me next . rest) on args do
-		(let* ((litex-latex-maybe-enclose?
-			(or (> (length args) 1)
-			    (litex-latex-enclose-check-args me))))
-		  (princ (format "%s"
-				 (litex-latex-maybe-enclose me)))
-		  (if (and next
-			   (or (and (symbolp me)
-				    (> (length (prin1-to-string me)) 1))
-			       (and (symbolp next)
-				    (> (length (prin1-to-string next)) 1))
-			       (numberp next)))
-                      (princ " \\times "))))))
+  (with-output-to-string
+    (cl-loop for (me next . rest) on args do
+	     (let* ((litex-latex-maybe-enclose?
+		     (or (> (length args) 1)
+			 (litex-latex-enclose-check-args me))))
+	       (princ (format "%s"
+			      (litex-latex-maybe-enclose me)))
+	       (if (and next
+			(or (and (symbolp me)
+				 (> (length (prin1-to-string me)) 1))
+			    (and (symbolp next)
+				 (> (length (prin1-to-string next)) 1))
+			    (numberp next)))
+                   (princ " \\times "))))))
 
 (defun litex-format-args-/ (args)
   "Formatting function for / operator called with ARGS."
   (let ((arg1 (car args))
 	(arg-rest (cdr args))
 	(litex-latex-maybe-enclose? nil))
-  (if arg-rest
-      (format "\\frac{%s}{%s}"
-	      (litex-lisp2latex-all arg1)
-              (litex-lisp2latex-all (cons '* arg-rest)))
-    (format "\\frac1{%s}" (litex-lisp2latex-all arg1)))))
+    (if arg-rest
+	(format "\\frac{%s}{%s}"
+		(litex-lisp2latex-all arg1)
+		(litex-lisp2latex-all (cons '* arg-rest)))
+      (format "\\frac1{%s}" (litex-lisp2latex-all arg1)))))
 
 
 (defun litex-format-args-1+ (args)
@@ -229,15 +230,15 @@
   "Formatting function for expt function called with ARGS."
   (let ((base (car args))
 	(power (cadr args)))
-   (if (listp base)
-       (format "%s %s %s^{%s}"
-	       litex-math-brackets-start
-	       (litex-lisp2latex-all base)
-	       litex-math-brackets-end
-	       (litex-lisp2latex-all power))
-     (format "%s^{%s}"
-	     (litex-lisp2latex-all base)
-	     (litex-lisp2latex-all power)))))
+    (if (listp base)
+	(format "%s %s %s^{%s}"
+		litex-math-brackets-start
+		(litex-lisp2latex-all base)
+		litex-math-brackets-end
+		(litex-lisp2latex-all power))
+      (format "%s^{%s}"
+	      (litex-lisp2latex-all base)
+	      (litex-lisp2latex-all power)))))
 
 
 (defun litex-format-args-sqrt (args)
@@ -262,33 +263,35 @@
 (defun litex-format-args-defun (args)
   "Formatting function for defun called with ARGS function."
   (let ((func-name (car args))
-	   (fargs (cadr args))
-	   (expr (caddr args)))
-       (format "\\mathrm{%s}(%s):%s"
-	       (litex-format-variable func-name)
-	       (mapconcat #'prin1-to-string fargs ",")
-	       (litex-lisp2latex-all expr))))
+	(fargs (cadr args))
+	(expr (caddr args)))
+    (format "\\mathrm{%s}(%s):%s"
+	    (litex-format-variable func-name)
+	    (mapconcat #'prin1-to-string fargs ",")
+	    (litex-lisp2latex-all expr))))
 
 
 (defun litex-format-args-default (func args)
-  "Default Formatting function, Call corresponding called with
-ARGS formatting function if available for FUNC passing ARGS as
-argument, else make a general format."
+  "Default Formatting function for Lisp expressions.
+
+Call corresponding called with ARGS formatting function if
+available for FUNC passing ARGS as argument, else make a general
+format."
   (let ((func-symbol (intern (format "litex-format-args-%s" func))))
     (if (functionp func-symbol)
 	(let ((litex-latex-maybe-enclose?
 	       (and (litex-latex-enclose-check-args args)
 		    (litex-latex-enclose-check-function func))))
-	      (apply func-symbol (list args)))
+	  (apply func-symbol (list args)))
       (let* ((known? (cl-find func litex-latex-functions))
-            (enclose? (or (not known?)
-                          (litex-latex-enclose-check-args args)))
-            (format-string (concat (if known? "\\%s" "\\mathrm{%s}")
-                                   (if enclose?
-				       (concat litex-math-brackets-start
-					       "%s"
-					       litex-math-brackets-end)
-				     " %s"))))
+             (enclose? (or (not known?)
+                           (litex-latex-enclose-check-args args)))
+             (format-string (concat (if known? "\\%s" "\\mathrm{%s}")
+                                    (if enclose?
+					(concat litex-math-brackets-start
+						"%s"
+						litex-math-brackets-end)
+				      " %s"))))
 	(format format-string func
 		(mapconcat #'litex-lisp2latex-all args ","))))))
 
@@ -321,16 +324,16 @@ argument, else make a general format."
 (defun litex-substitute-values (expression)
   "Gives a string from EXPRESSION substituting the values."
   (condition-case nil
-   (if (functionp expression)
-      (format "%s" expression)
-    (if (symbolp expression)
-	(format "%s" (eval expression))
-      (if (consp expression)
-	  (format "(%s)"
-		  (mapconcat #'litex-substitute-values expression " "))
-	(prin1-to-string expression))))
-   ;; this will catch error for undefined variables.
-   (void-variable (prin1-to-string expression))))
+      (if (functionp expression)
+	  (format "%s" expression)
+	(if (symbolp expression)
+	    (format "%s" (eval expression))
+	  (if (consp expression)
+	      (format "(%s)"
+		      (mapconcat #'litex-substitute-values expression " "))
+	    (prin1-to-string expression))))
+    ;; this will catch error for undefined variables.
+    (void-variable (prin1-to-string expression))))
 
 
 (defun litex-solve-single-step (form)
@@ -350,8 +353,7 @@ argument, else make a general format."
 
 
 (defun litex-solve-all-steps (form)
-  "Solves all the steps of calculations in FORM expression and
-retuns a list of steps."
+  "Solves all the steps of calculations in FORM expression and retuns a list of steps."
   (let
       ((solution (list form))) ;given expression
     (if
@@ -498,8 +500,7 @@ Argument END end position of region."
 
 
 (defun litex-format-region-last (beg end)
-  "Format selected region as per format of last call to
-`litex-format-region`,BEG and END are region bounds."
+  "Format selected region as per format of last call to `litex-format-region`,BEG and END are region bounds."
   (interactive (if (use-region-p)
                    (list (region-beginning) (region-end))
                  (let ((bnd (bounds-of-thing-at-point 'sexp)))
@@ -541,16 +542,15 @@ Argument END end position of region."
 	(when ma
 	  (delete-region (car bounds) (cdr bounds))
 	  (insert
-		   (match-string 1 word)
-		   (number-to-string (+ step (string-to-number
-					      (match-string 2 word))))
-		   (match-string 3 word)))))))
+	   (match-string 1 word)
+	   (number-to-string (+ step (string-to-number
+				      (match-string 2 word))))
+	   (match-string 3 word)))))))
 
 
 
 (defun litex-insert-or-replace-x (beg end)
-  "If a region (BEG to END) is selected, replace * by \times
-otherwise insert \times instead of ×."
+  "If a region (BEG to END) is selected, replace * by \times otherwise insert \times instead of ×."
   (interactive (if (use-region-p)
                    (list (region-beginning) (region-end))
                  (list (point) (point))))
