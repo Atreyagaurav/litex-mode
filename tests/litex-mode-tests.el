@@ -73,8 +73,10 @@
 (ert-deftest litex-format-args-expt-test ()
     (should (string= (litex-format-args-expt '(1 2)) "1^{2}"))
     (should (string= (litex-format-args-expt '(x 2)) "x^{2}"))
-    (should (string= (litex-format-args-expt '((+ 1 2) 2)) "(1 + 2)^{2}"))
-    (should (string= (litex-format-args-expt '((* 2 x) 2)) "(2x)^{2}")))
+    (should (string= (litex-format-args-expt
+		      '((+ 1 2) 2)) "\\left( 1 + 2 \\right)^{2}"))
+    (should (string= (litex-format-args-expt '((* 2 x) 2))
+		     "\\left( 2x \\right)^{2}")))
 
 
 (ert-deftest litex-lisp2latex-all-test ()
@@ -85,21 +87,22 @@
   (should (string= (litex-lisp2latex-all
 		    '(setq x (expt y 2))) "x = y^{2}"))
   (should (string= (litex-lisp2latex-all
-		    '(setq z (expt (1+ x) y))) "z = (x + 1)^{y}"))
+		    '(setq z (expt (1+ x) y)))
+		   "z = \\left( x + 1 \\right)^{y}"))
   (should (string= (litex-lisp2latex-all
-		    '(setq z (expt (* 2 x) y))) "z = (2x)^{y}"))
+		    '(setq z (expt (* 2 x) y)))
+		   "z = \\left( 2x \\right)^{y}"))
   (should (string= (litex-lisp2latex-all
 		    '(setq z (expt (1+ x) (* 2 y))))
-		   "z = (x + 1)^{2y}"))
+		   "z = \\left( x + 1 \\right)^{2y}"))
   (should (string= (litex-lisp2latex-all '(1- (* 2 x))) "2x - 1"))
   (should (string= (litex-lisp2latex-all
 		    '(setq x (- t 6 (* 5 60 (/ x)))))
-		   "x = t - 6 - 5 \\times 60(\\frac1{x})"))
+		   "x = t - 6 - 5 \\times 60\\left( \\frac1{x} \\right)"))
   (should (string= (litex-lisp2latex-all
 		    '(setq x (- t 6 (* 5 60 (/ x 2)))))
-		   "x = t - 6 - 5 \\times 60(\\frac{x}{2})"))
+		   "x = t - 6 - 5 \\times 60\\left( \\frac{x}{2} \\right)"))
   (should (string= (litex-lisp2latex-all
 		    '(fun x 2 (/ 5 (+ 6 7) x)))
-		   "\\mathrm{fun}(x,2,\\frac{5}{(6 + 7)x})"))
+		   "\\mathrm{fun}(x,2,\\frac{5}{\\left( 6 + 7 \\right)x})"))
   )
-
