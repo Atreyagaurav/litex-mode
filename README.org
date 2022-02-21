@@ -1,4 +1,5 @@
 [[https://melpa.org/#/litex-mode][file:https://melpa.org/packages/litex-mode-badge.svg]]
+[[https://stable.melpa.org/#/litex-mode][file:https://stable.melpa.org/packages/litex-mode-badge.svg]]
 
 * LiTeX mode
    This is a minor mode to convert valid elisp/lisp expressions to latex.
