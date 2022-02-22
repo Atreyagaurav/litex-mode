@@ -44,6 +44,10 @@
 	arctan cot det hom lim log sec tan arg coth dim liminf max
 	sin tanh)
   "Lisp functions that have their own latex commands.")
+(defvar litex-make-unicode-to-latex t
+  "Whether to convert unicode to LaTeX equivalent (eg. α -> \alpha). These work better in math mode.")
+(defvar litex-make-name-to-latex-glyph t
+  "Whether to convert variables with the same name as a glyph to a LaTeX glyph (eg. alpha -> \alpha).")
 (defvar litex-make-hyphenated-to-subscript t
   "Whether to make the hyphenated variables subscript or not.")
 (defvar litex-latex-maybe-enclose? nil
@@ -100,6 +104,49 @@
   "Value of `litex-steps-end-string' to be used in align environment.")
 
 
+(defvar litex-unicode-to-latex-alist
+  '(("α" . "\\alpha")
+    ("β" . "\\beta")
+    ("γ" . "\\gamma")
+    ("δ" . "\\delta")
+    ("ε" . "\\epsilon")
+    ("ϵ" . "\\varepsilon")
+    ("ζ" . "\\zeta")
+    ("η" . "\\eta")
+    ("θ" . "\\theta")
+    ("ϑ" . "\\vartheta")
+    ("ι" . "\\iota")
+    ("κ" . "\\kappa")
+    ("λ" . "\\lambda")
+    ("μ" . "\\mu")
+    ("ν" . "\\nu")
+    ("ξ" . "\\xi")
+    ("π" . "\\pi")
+    ("ρ" . "\\rho")
+    ("ϱ" . "\\varrho")
+    ("σ" . "\\sigma")
+    ("τ" . "\\tau")
+    ("υ" . "\\upsilon")
+    ("φ" . "\\phi")
+    ("φ" . "\\varphi")
+    ("χ" . "\\chi")
+    ("ψ" . "\\psi")
+    ("ω" . "\\omega")
+    
+    ("Γ" . "\\Gamma")
+    ("Δ" . "\\Delta")
+    ("Ζ" . "\\Zeta")
+    ("Θ" . "\\Theta")
+    ("Λ" . "\\Lambda")
+    ("Ξ" . "\\Xi")
+    ("Π" . "\\Pi")
+    ("Ρ" . "\\Rho")
+    ("Σ" . "\\Sigma")
+    ("Υ" . "\\Upsilon")
+    ("Φ" . "\\Phi")
+    ("Ψ" . "\\Psi")
+    ("Ω" . "\\Omega"))
+  "Unicode symbols and their LaTeX counterparts")
 
 
 (defun litex-format-float (val)
@@ -128,12 +175,21 @@
 
 (defun litex-format-variable (var)
   "Format variable VAR for LaTeX."
-  (let ((var-str (prin1-to-string var)))
+  (let ((var-str (prin1-to-string var))
+	(var-assoc nil))
     (if litex-make-hyphenated-to-subscript
 	(while (string-match "\\([^-]+\\)[-]\\(.*\\)" var-str)
 	  (setq var-str (format "%s_{%s}"
 				(match-string 1 var-str)
 				(match-string 2 var-str)))))
+    (when litex-make-name-to-latex-glyph
+      (when (rassoc var-str litex-unicode-to-latex-alist)
+	(setq var-str (concat "{" "\\" var-str "}"))))
+    (when litex-make-unicode-to-latex
+      (setq var-assoc (cdr (assoc var-str litex-unicode-to-latex-alist)))
+      (when var-assoc
+	(setq var-str
+	      (concat "{" "\\" var-assoc "}"))))
     var-str))
 
 
@@ -306,7 +362,7 @@ format."
     ;; simple variables
     (_
      (cond ((floatp form) (litex-format-float form))
-	   ((symbolp form) (litex-format-variable form))
+	   ((or (symbolp form) (stringp form)) (litex-format-variable form))
            (t (prin1-to-string form))))))
 
 
