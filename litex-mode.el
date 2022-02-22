@@ -46,6 +46,8 @@
   "Lisp functions that have their own latex commands.")
 (defvar litex-make-unicode-to-latex t
   "Whether to convert unicode to LaTeX equivalent (eg. α -> \alpha). These work better in math mode.")
+(defvar litex-make-name-to-latex-glyph t
+  "Whether to convert variables with the same name as a glyph to a LaTeX glyph (eg. alpha -> \alpha).")
 (defvar litex-make-hyphenated-to-subscript t
   "Whether to make the hyphenated variables subscript or not.")
 (defvar litex-latex-maybe-enclose? nil
@@ -180,11 +182,14 @@
 	  (setq var-str (format "%s_{%s}"
 				(match-string 1 var-str)
 				(match-string 2 var-str)))))
+    (when litex-make-name-to-latex-glyph
+      (when (rassoc var-str litex-unicode-to-latex-alist)
+	(setq var-str (concat "{" "\\" var-str "}"))))
     (when litex-make-unicode-to-latex
       (setq var-assoc (cdr (assoc var-str litex-unicode-to-latex-alist)))
       (when var-assoc
 	(setq var-str
-	      (concat "{" var-assoc "}"))))
+	      (concat "{" "\\" var-assoc "}"))))
     var-str))
 
 
