@@ -104,48 +104,48 @@
   "Value of `litex-steps-end-string' to be used in align environment.")
 
 
-(defvar litex-unicode-to-latex-alist
-  '(("α" . "\\alpha")
-    ("β" . "\\beta")
-    ("γ" . "\\gamma")
-    ("δ" . "\\delta")
-    ("ε" . "\\epsilon")
-    ("ϵ" . "\\varepsilon")
-    ("ζ" . "\\zeta")
-    ("η" . "\\eta")
-    ("θ" . "\\theta")
-    ("ϑ" . "\\vartheta")
-    ("ι" . "\\iota")
-    ("κ" . "\\kappa")
-    ("λ" . "\\lambda")
-    ("μ" . "\\mu")
-    ("ν" . "\\nu")
-    ("ξ" . "\\xi")
-    ("π" . "\\pi")
-    ("ρ" . "\\rho")
-    ("ϱ" . "\\varrho")
-    ("σ" . "\\sigma")
-    ("τ" . "\\tau")
-    ("υ" . "\\upsilon")
-    ("φ" . "\\phi")
-    ("φ" . "\\varphi")
-    ("χ" . "\\chi")
-    ("ψ" . "\\psi")
-    ("ω" . "\\omega")
+(defvar litex-greek-unicode-latex-alist
+  '(("α" . "alpha")
+    ("β" . "beta")
+    ("γ" . "gamma")
+    ("δ" . "delta")
+    ("ε" . "epsilon")
+    ("ϵ" . "varepsilon")
+    ("ζ" . "zeta")
+    ("η" . "eta")
+    ("θ" . "theta")
+    ("ϑ" . "vartheta")
+    ("ι" . "iota")
+    ("κ" . "kappa")
+    ("λ" . "lambda")
+    ("μ" . "mu")
+    ("ν" . "nu")
+    ("ξ" . "xi")
+    ("π" . "pi")
+    ("ρ" . "rho")
+    ("ϱ" . "varrho")
+    ("σ" . "sigma")
+    ("τ" . "tau")
+    ("υ" . "upsilon")
+    ("φ" . "phi")
+    ("φ" . "varphi")
+    ("χ" . "chi")
+    ("ψ" . "psi")
+    ("ω" . "omega")
     
-    ("Γ" . "\\Gamma")
-    ("Δ" . "\\Delta")
-    ("Ζ" . "\\Zeta")
-    ("Θ" . "\\Theta")
-    ("Λ" . "\\Lambda")
-    ("Ξ" . "\\Xi")
-    ("Π" . "\\Pi")
-    ("Ρ" . "\\Rho")
-    ("Σ" . "\\Sigma")
-    ("Υ" . "\\Upsilon")
-    ("Φ" . "\\Phi")
-    ("Ψ" . "\\Psi")
-    ("Ω" . "\\Omega"))
+    ("Γ" . "Gamma")
+    ("Δ" . "Delta")
+    ("Ζ" . "Zeta")
+    ("Θ" . "Theta")
+    ("Λ" . "Lambda")
+    ("Ξ" . "Xi")
+    ("Π" . "Pi")
+    ("Ρ" . "Rho")
+    ("Σ" . "Sigma")
+    ("Υ" . "Upsilon")
+    ("Φ" . "Phi")
+    ("Ψ" . "Psi")
+    ("Ω" . "Omega"))
   "Unicode symbols and their LaTeX counterparts")
 
 
@@ -173,24 +173,33 @@
     expr))
 
 
-(defun litex-format-variable (var)
-  "Format variable VAR for LaTeX."
-  (let ((var-str (prin1-to-string var))
+(defun litex-format-greek-characters (string)
+  "Format STRING to Greek LaTeX notation if it has greek unicode or character name."
+  (let ((var-str string)
 	(var-assoc nil))
-    (if litex-make-hyphenated-to-subscript
-	(while (string-match "\\([^-]+\\)[-]\\(.*\\)" var-str)
-	  (setq var-str (format "%s_{%s}"
-				(match-string 1 var-str)
-				(match-string 2 var-str)))))
     (when litex-make-name-to-latex-glyph
-      (when (rassoc var-str litex-unicode-to-latex-alist)
-	(setq var-str (concat "{" "\\" var-str "}"))))
+      (when (rassoc var-str litex-greek-unicode-latex-alist)
+	(setq var-str (concat "{\\" var-str "}"))))
     (when litex-make-unicode-to-latex
-      (setq var-assoc (cdr (assoc var-str litex-unicode-to-latex-alist)))
+      (setq var-assoc (cdr (assoc var-str litex-greek-unicode-latex-alist)))
       (when var-assoc
 	(setq var-str
-	      (concat "{" "\\" var-assoc "}"))))
+	      (concat "{\\" var-assoc "}"))))
     var-str))
+
+
+(defun litex-format-variable (var)
+  "Format variable VAR for LaTeX."
+  (let ((var-strs (mapcar
+		   (lambda (s) (mapconcat #'litex-format-greek-characters
+				     (split-string s "/") ""))
+		   (split-string (prin1-to-string var) "-"))))
+
+    (let ((var-final (car var-strs)))
+      (if (> (length var-strs) 1)
+	  (cl-loop for (cvar . rest) on (cl-rest var-strs) do
+		   (setq var-final (format "%s_{%s}" var-final cvar))))
+      var-final)))
 
 
 (defun litex-latex-maybe-enclose (form)

@@ -27,6 +27,20 @@
     (should (string= (litex-format-float 2.1236e-6)
 		     "2.124 \\times 10^{-6}"))))
 
+(ert-deftest litex-format-variable-test ()
+  (let ((litex-make-unicode-to-latex t))
+    (should (string= (litex-format-variable 'α) "{\\alpha}"))
+    (should (string= (litex-format-variable 'α-β) "{\\alpha}_{{\\beta}}"))
+    (should (string= (litex-format-variable 'α-Δ/t-2)
+		     "{\\alpha}_{{\\Delta}t}_{2}"))
+    (should (string= (litex-format-variable 'alpha) "{\\alpha}"))
+    (should (string= (litex-format-variable 'Delta/alpha)
+		     "{\\Delta}{\\alpha}"))
+    (should (string= (litex-format-variable 'alpha/beta)
+		     "{\\alpha}{\\beta}")))
+  )
+
+
 ;; individual operator tests
 (ert-deftest litex-format-args-+-test ()
     (should (string= (litex-format-args-+ '(1 2)) "1 + 2"))
@@ -99,6 +113,7 @@
   (should (string= (litex-lisp2latex-all
 		    '(setq x (- t 6 (* 5 60 (/ x)))))
 		   "x = t - 6 - 5 \\times 60\\left( \\frac1{x} \\right)"))
+  ;; this one is failing
   (should (string= (litex-lisp2latex-all
 		    '(setq x (- t 6 (* 5 60 (/ x 2)))))
 		   "x = t - 6 - 5 \\times 60\\left( \\frac{x}{2} \\right)"))
