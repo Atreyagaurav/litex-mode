@@ -44,6 +44,8 @@
 	arctan cot det hom lim log sec tan arg coth dim liminf max
 	sin tanh)
   "Lisp functions that have their own latex commands.")
+(defvar litex-convert-delta-prefix "Delta-"
+  "If non-nil, convert this to the LaTeX glyph for capital Delta")
 (defvar litex-make-hyphenated-to-subscript t
   "Whether to make the hyphenated variables subscript or not.")
 (defvar litex-latex-maybe-enclose? nil
@@ -129,6 +131,10 @@
 (defun litex-format-variable (var)
   "Format variable VAR for LaTeX."
   (let ((var-str (prin1-to-string var)))
+    (when litex-convert-delta-prefix
+      (while (string-match (concat "\\(^" litex-convert-delta-prefix "\\)\\(.*\\)") var-str)
+	(setq var-str (concat "{\\Delta}"
+			      (match-string 2 var-str)))))
     (if litex-make-hyphenated-to-subscript
 	(while (string-match "\\([^-]+\\)[-]\\(.*\\)" var-str)
 	  (setq var-str (format "%s_{%s}"
