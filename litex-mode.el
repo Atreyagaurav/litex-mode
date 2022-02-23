@@ -44,9 +44,9 @@
 	arctan cot det hom lim log sec tan arg coth dim liminf max
 	sin tanh)
   "Lisp functions that have their own latex commands.")
-(defvar litex-make-unicode-to-latex t
+(defvar litex-make-unicode-to-latex nil
   "Whether to convert unicode to LaTeX equivalent (eg. α -> \alpha). These work better in math mode.")
-(defvar litex-make-name-to-latex-glyph t
+(defvar litex-make-name-to-latex-glyph nil
   "Whether to convert variables with the same name as a glyph to a LaTeX glyph (eg. alpha -> \alpha).")
 (defvar litex-make-hyphenated-to-subscript t
   "Whether to make the hyphenated variables subscript or not.")

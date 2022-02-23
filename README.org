@@ -91,6 +91,33 @@ Contents of litex-key-map are below.
   (local-set-key (kbd "×") 'litex-insert-or-replace-x))
   #+end_src
 
+* Tips and Tricks
+
+** Using Greek letters
+   Someone who writes in LaTeX will definitely want to include greek letters, so you can use greek letters multiple ways in LiTeX.
+
+*** By double escaping the backslash
+    You can use double escape to escape the backslash so you'll get the variable correct. For example: ~(setq \\alpha 2)~ ⇒ ~\alpha = 2~
+   
+*** Using Unicode:
+    You can input unicode greek letters like α,β,γ...,Σ...,Ω, and they'll be rendered fine by LaTeX. For example: ~(setq α 2)~ ⇒ ~α = 2~. Which is the default behavior.
+
+    If you want to use them to input, but still want to use LaTeX equivalent command then you can set ~litex-make-unicode-to-latex~ to true, that'll convert the unicode to LaTeX command. For example: ~(setq α 2)~ ⇒ ~{\alpha} = 2~.
+
+    #+begin_src emacs-lisp :tangle yes
+(setq litex-make-unicode-to-latex t)
+    #+end_src
+
+    As for how to type unicode directly, you can use Compose key in Linux machines, and there is also TeX input method in emacs that lets you do that. If you type ~C-u C-\ TeX <RET>~ for TeX input method then when you type ~\alpha~ emacs will convert it into unicode ~α~.
+
+*** Using conversion from their names
+    By default you can use variables names like ~alpha~ without having it any effect, for example: ~(setq alpha 2)~ ⇒ ~alpha = 2~ but if you set the variable ~litex-make-name-to-latex-glyph~ true then you can just convert normal greek character's names to LaTeX symbols. 
+Like: ~(setq alpha 2)~ ⇒ ~{\alpha} = 2~
+
+    #+begin_src emacs-lisp :tangle yes
+(setq litex-make-name-to-latex-glyph t)
+    #+end_src
+
 
 * Explanation for functions
 
