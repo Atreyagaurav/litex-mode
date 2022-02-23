@@ -101,6 +101,11 @@
 
 
 
+(defmacro litex-var (var value &optional unit)
+  "Macro to define VAR varible with VALUE for calculation, with UNIT for formatting."
+  ;; TODO: use some modifications to set the variable so that there is no conflict with emacs variables.
+  (set var (eval value)))
+
 
 (defun litex-format-float (val)
   "Function that defines how float VAL is formatted in lisp2latex."
@@ -204,6 +209,7 @@
 			    (numberp next)))
                    (princ " \\times "))))))
 
+
 (defun litex-format-args-/ (args)
   "Formatting function for / operator called with ARGS."
   (let ((arg1 (car args))
@@ -254,6 +260,15 @@
 			    (litex-lisp2latex-all a)
 			    (litex-lisp2latex-all b)))
 	     (when rest (princ "; ")))))
+
+
+(defun litex-format-args-litex-var (args)
+  "Formatting function for setq function called with ARGS."
+  (format "%s = %s \\:\\text{%s}"
+	  (litex-format-variable (car args))
+	  (litex-lisp2latex-all (cadr args))
+	  (string-trim (litex-format-variable
+			(caddr args)) "\"" "\"")))
 
 
 (setf (symbol-function 'litex-format-args-local-setq)
