@@ -193,7 +193,7 @@
   (let ((var-strs (mapcar
 		   (lambda (s) (mapconcat #'litex-format-greek-characters
 				     (split-string s "/") ""))
-		   (split-string (prin1-to-string var) "-"))))
+		   (split-string (prin1-to-string var t) "-"))))
 
     (let ((var-final (car var-strs)))
       (if (> (length var-strs) 1)
