@@ -28,7 +28,8 @@
 		     "2.124 \\times 10^{-6}"))))
 
 (ert-deftest litex-format-variable-test ()
-  (let ((litex-make-unicode-to-latex t))
+  (let ((litex-make-unicode-to-latex t)
+	(litex-make-name-to-latex-glyph t))
     (should (string= (litex-format-variable 'α) "{\\alpha}"))
     (should (string= (litex-format-variable 'α-β) "{\\alpha}_{{\\beta}}"))
     (should (string= (litex-format-variable 'α-Δ/t-2)
