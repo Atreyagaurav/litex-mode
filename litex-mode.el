@@ -36,13 +36,20 @@
 (eval-when-compile (require 'pcase))
 (require 'cl-lib)
 
-
-(defvar litex-latex-functions '(sin cos tan)
+;; list from:
+;; https://www.overleaf.com/learn/latex/Operators#Reference_guide
+;; not all of these functions might have lisp equivalent, check it.
+(defvar litex-latex-functions
+  '(cos csc exp ker limsup min sinh arcsin cosh deg gcd lg ln Pr sup
+	arctan cot det hom lim log sec tan arg coth dim liminf max
+	sin tanh)
   "Lisp functions that have their own latex commands.")
 (defvar litex-make-hyphenated-to-subscript t
   "Whether to make the hyphenated variables subscript or not.")
 (defvar litex-latex-maybe-enclose? nil
   "Enclose latex converted to paran if needed.")
+(defvar litex-keep-sexp-in-buffer nil
+  "Keep the last sexp on point if true, else replace it.")
 
 (defvar litex-format-float-string "%.3f"
   "Format string to be used by floats.")
@@ -60,6 +67,10 @@
   "Opening syntax for math inline environment.")
 (defvar litex-math-inline-end "\\)"
   "Closing syntax for math inline environment.")
+(defvar litex-math-brackets-start "\\left("
+  "Opening syntax for math brackets.")
+(defvar litex-math-brackets-end "\\right)"
+  "Closing syntax for math brackets.")
 
 (defvar litex-math-equation-start "\\begin{equation}\n"
   "Opening syntax for math equation environment.")
@@ -79,11 +90,20 @@
 (defvar litex-math-steps-eqnarray-end-string "\\\\\n"
   "Value of `litex-steps-end-string' to be used in eqnarray environment.")
 
-;; (defvar litex-use-slime-inferior-process nil
-;;   "Whether to use slime process for evalulation or not.")
+(defvar litex-math-align-start "\\begin{align*}\n"
+  "Opening syntax for math align environment.")
+(defvar litex-math-align-end "\n\\end{align*}\n"
+  "Closing syntax for math align environment.")
+(defvar litex-math-steps-align-join-string "& = "
+  "Value of `litex-steps-join-string' to be used in align environment.")
+(defvar litex-math-steps-align-end-string "\\\\\n"
+  "Value of `litex-steps-end-string' to be used in align environment.")
 
-;; (defvar litex-slime-process nil
-;;   "Variable to store litex slime process.")
+
+
+
+(defvar litex-use-slime-inferior-process nil
+  "Whether to use slime process for evalulation or not.")
 
 
 ;; I was thinking something simple as this function but it doesn't
@@ -103,8 +123,21 @@
       (let* ((exponent (floor (log val 10)))
              (front (/ val (expt 10 exponent))))
         (format (concat litex-format-float-string
-			" \\times 10^{%d}") front exponent))
+			" \\times 10^{%d}")
+		front exponent))
     (format litex-format-float-string val)))
+
+
+(defun litex-read-sexp-maybe-kill ()
+  "Read the sexp before point, kill it if `litex-keep-sexp-in-buffer' is nil."
+  (interactive)
+  (let ((expr (sexp-at-point)))
+    (if (not litex-keep-sexp-in-buffer)
+	(backward-kill-sexp)
+      ;; should I do it here or check if it's a comment and only do
+      ;; that later. or copy the things after the sexp till EOL.
+      (or (end-of-line) (insert "\n")))
+    expr))
 
 
 (defun litex-format-variable (var)
@@ -120,11 +153,15 @@
 
 (defun litex-latex-maybe-enclose (form)
   "Encloses FORM in parantheis if LITEX-LATEX-MAYBE-ENCLOSE is true."
-  (let* ((litex-latex-maybe-enclose? nil)
-         (latex (litex-lisp2latex-all form)))
+  (let* ((latex (litex-lisp2latex-all form)))
     (if (and (consp form)
+	     (not (and (functionp (car form))
+		       (litex-latex-enclose-check-function (car form))))
 	     litex-latex-maybe-enclose?)
-        (format "(%s)" latex)
+        (format "%s %s %s"
+		litex-math-brackets-start
+		latex
+		litex-math-brackets-end)
       latex)))
 
 
@@ -139,12 +176,11 @@
 
 (defun litex-latex-enclose-check-function (func)
   "Check if we need to use parantheis for args based on FUNC."
-  (let ((litex-latex-maybe-enclose? nil))
-    (if (member func '(+ - * / 1+ 1-))
-	litex-latex-maybe-enclose?
-      (if (member func '(expt))
-	  t
-	nil))))
+  (if (member func '(+ - * / 1+ 1-))
+      litex-latex-maybe-enclose?
+    (if (member func '(expt))
+	t
+      nil)))
 
 
 ;; formatting functions to be called by litex-lisp2latex-all
@@ -152,48 +188,46 @@
 (defun litex-format-args-+ (args)
   "Formatting function for + operator called with ARGS."
   (let ((litex-latex-maybe-enclose? t))
-       (mapconcat #'litex-lisp2latex-all args " + ")))
+    (mapconcat #'litex-lisp2latex-all args " + ")))
 
 
 (defun litex-format-args-- (args)
   "Formatting function for - operator called with ARGS."
   (let ((arg1 (car args))
 	(arg-rest (cdr args)))
-  (if arg-rest
-         (format "%s - %s" (litex-lisp2latex-all arg1)
-                 (mapconcat #'litex-lisp2latex-all arg-rest " - "))
-    (format "-%s" (litex-lisp2latex-all arg1)))))
+    (if arg-rest
+        (format "%s - %s" (litex-lisp2latex-all arg1)
+                (mapconcat #'litex-lisp2latex-all arg-rest " - "))
+      (format "-%s" (litex-lisp2latex-all arg1)))))
 
 
 (defun litex-format-args-* (args)
   "Formatting function for * operator called with ARGS."
-   (with-output-to-string
-       (cl-loop for (me next . rest) on args do
-		(let* ((enclose? (litex-latex-enclose-check-args me))
-		       (arg1-format (if enclose? "(%s)" "%s"))
-		       (litex-latex-maybe-enclose? enclose?))
-		  (if (and next (or (and (symbolp me)
-			       (> (length (prin1-to-string me)) 1))
-			  (and (symbolp next)
-			       (> (length (prin1-to-string next)) 1))
-			  (numberp next)))
-                      (princ (concat
-			      (format arg1-format
-				      (litex-latex-maybe-enclose me))
-			      " \\times "))
-		  (princ (format arg1-format
-				 (litex-latex-maybe-enclose me))))))))
+  (with-output-to-string
+    (cl-loop for (me next . rest) on args do
+	     (let* ((litex-latex-maybe-enclose?
+		     (or (> (length args) 1)
+			 (litex-latex-enclose-check-args me))))
+	       (princ (format "%s"
+			      (litex-latex-maybe-enclose me)))
+	       (if (and next
+			(or (and (symbolp me)
+				 (> (length (prin1-to-string me)) 1))
+			    (and (symbolp next)
+				 (> (length (prin1-to-string next)) 1))
+			    (numberp next)))
+                   (princ " \\times "))))))
 
 (defun litex-format-args-/ (args)
   "Formatting function for / operator called with ARGS."
   (let ((arg1 (car args))
 	(arg-rest (cdr args))
 	(litex-latex-maybe-enclose? nil))
-  (if arg-rest
-      (format "\\frac{%s}{%s}"
-	      (litex-lisp2latex-all arg1)
-              (litex-lisp2latex-all (cons '* arg-rest)))
-    (format "\\frac1{%s}" (litex-lisp2latex-all arg1)))))
+    (if arg-rest
+	(format "\\frac{%s}{%s}"
+		(litex-lisp2latex-all arg1)
+		(litex-lisp2latex-all (cons '* arg-rest)))
+      (format "\\frac1{%s}" (litex-lisp2latex-all arg1)))))
 
 
 (defun litex-format-args-1+ (args)
@@ -210,13 +244,15 @@
   "Formatting function for expt function called with ARGS."
   (let ((base (car args))
 	(power (cadr args)))
-   (if (listp base)
-       (format "(%s)^{%s}"
-	       (litex-lisp2latex-all base)
-	       (litex-lisp2latex-all power))
-     (format "%s^{%s}"
-	     (litex-lisp2latex-all base)
-	     (litex-lisp2latex-all power)))))
+    (if (listp base)
+	(format "%s %s %s^{%s}"
+		litex-math-brackets-start
+		(litex-lisp2latex-all base)
+		litex-math-brackets-end
+		(litex-lisp2latex-all power))
+      (format "%s^{%s}"
+	      (litex-lisp2latex-all base)
+	      (litex-lisp2latex-all power)))))
 
 
 (defun litex-format-args-sqrt (args)
@@ -241,29 +277,35 @@
 (defun litex-format-args-defun (args)
   "Formatting function for defun called with ARGS function."
   (let ((func-name (car args))
-	   (fargs (cadr args))
-	   (expr (caddr args)))
-       (format "\\mathrm{%s}(%s):%s"
-	       (litex-format-variable func-name)
-	       (mapconcat #'prin1-to-string fargs ",")
-	       (litex-lisp2latex-all expr))))
+	(fargs (cadr args))
+	(expr (caddr args)))
+    (format "\\mathrm{%s}(%s):%s"
+	    (litex-format-variable func-name)
+	    (mapconcat #'prin1-to-string fargs ",")
+	    (litex-lisp2latex-all expr))))
 
 
 (defun litex-format-args-default (func args)
-  "Default Formatting function, Call corresponding called with
-ARGS formatting function if available for FUNC passing ARGS as
-argument, else make a general format."
+  "Default Formatting function for Lisp expressions.
+
+Call corresponding called with ARGS formatting function if
+available for FUNC passing ARGS as argument, else make a general
+format."
   (let ((func-symbol (intern (format "litex-format-args-%s" func))))
     (if (functionp func-symbol)
 	(let ((litex-latex-maybe-enclose?
 	       (and (litex-latex-enclose-check-args args)
 		    (litex-latex-enclose-check-function func))))
-	      (apply func-symbol (list args)))
+	  (apply func-symbol (list args)))
       (let* ((known? (cl-find func litex-latex-functions))
-            (enclose? (or (not known?)
-                          (litex-latex-enclose-check-args args)))
-            (format-string (concat (if known? "\\%s" "\\mathrm{%s}")
-                                   (if enclose?  "(%s)" " %s"))))
+             (enclose? (or (not known?)
+                           (litex-latex-enclose-check-args args)))
+             (format-string (concat (if known? "\\%s" "\\mathrm{%s}")
+                                    (if enclose?
+					(concat litex-math-brackets-start
+						"%s"
+						litex-math-brackets-end)
+				      " %s"))))
 	(format format-string func
 		(mapconcat #'litex-lisp2latex-all args ","))))))
 
@@ -325,8 +367,7 @@ argument, else make a general format."
 
 
 (defun litex-solve-all-steps (form)
-  "Solves all the steps of calculations in FORM expression and
-retuns a list of steps."
+  "Solves all the steps of calculations in FORM expression and retuns a list of steps."
   (let
       ((solution (list form))) ;given expression
     (if
@@ -414,22 +455,19 @@ Argument END end position of region."
 (defun litex-sexp-to-latex-exp ()
   "Convert valid sexp to latex expressions."
   (interactive)
-  (backward-kill-sexp)
-  (insert (litex-lisp2latex-all (read (current-kill 0)))))
+  (insert (litex-lisp2latex-all (litex-read-sexp-maybe-kill))))
 
 
 (defun litex-sexp-replace-variables ()
   "Replace the variable values in the last sexp at point."
   (interactive)
-  (backward-kill-sexp)
-  (insert (litex-substitute-values (read (current-kill 0)))))
+  (insert (litex-substitute-values (litex-read-sexp-maybe-kill))))
 
 
 (defun litex-sexp-solve-all-steps ()
   "Solve last sexp at point in steps and insert those steps."
   (interactive)
-  (backward-kill-sexp)
-  (let ((expression (read (current-kill 0))))
+  (let ((expression (litex-read-sexp-maybe-kill)))
     (insert
      (litex-sexp-to-solved-string expression #'prin1-to-string))))
 
@@ -437,8 +475,7 @@ Argument END end position of region."
 (defun litex-sexp-solve-single-step ()
   "Solve last sexp at point for one step and insert it."
   (interactive)
-  (backward-kill-sexp)
-  (let ((expression (read (current-kill 0))))
+  (let ((expression (litex-read-sexp-maybe-kill)))
     (insert
      (prin1-to-string (litex-solve-single-step expression)))))
 
@@ -446,32 +483,38 @@ Argument END end position of region."
 (defun litex-solve-all-steps-equation ()
   "Solve last sexp in steps and insert it in LaTeX equation environment."
   (interactive)
-  (backward-kill-sexp)
-  (let ((expression (read (current-kill 0)))
+  (let ((expression (litex-read-sexp-maybe-kill))
 	(litex-steps-join-string litex-math-steps-equation-join-string)
 	(litex-steps-end-string litex-math-steps-equation-end-string))
-    (insert litex-math-equation-start)
-    (insert
-     (litex-sexp-to-solved-string expression #'litex-lisp2latex-all))
-    (insert litex-math-equation-end)))
+    (insert litex-math-equation-start
+	    (litex-sexp-to-solved-string expression #'litex-lisp2latex-all)
+	    litex-math-equation-end)))
 
 
 (defun litex-solve-all-steps-eqnarray ()
   "Solve last sexp in steps and insert it in LaTeX eqnarray environment."
   (interactive)
-  (backward-kill-sexp)
-  (let ((expression (read (current-kill 0)))
+  (let ((expression (litex-read-sexp-maybe-kill))
 	(litex-steps-join-string litex-math-steps-eqnarray-join-string)
 	(litex-steps-end-string litex-math-steps-eqnarray-end-string))
-    (insert litex-math-eqnarray-start)
-    (insert
-     (litex-sexp-to-solved-string expression #'litex-lisp2latex-all))
-    (insert litex-math-eqnarray-end)))
+    (insert litex-math-eqnarray-start
+	    (litex-sexp-to-solved-string expression #'litex-lisp2latex-all)
+	    litex-math-eqnarray-end)))
+
+
+(defun litex-solve-all-steps-align ()
+  "Solve last sexp in steps and insert it in LaTeX align environment."
+  (interactive)
+  (let ((expression (litex-read-sexp-maybe-kill))
+	(litex-steps-join-string litex-math-steps-align-join-string)
+	(litex-steps-end-string litex-math-steps-align-end-string))
+    (insert litex-math-align-start
+	    (litex-sexp-to-solved-string expression #'litex-lisp2latex-all)
+	    litex-math-align-end)))
 
 
 (defun litex-format-region-last (beg end)
-  "Format selected region as per format of last call to
-`litex-format-region`,BEG and END are region bounds."
+  "Format selected region as per format of last call to `litex-format-region`,BEG and END are region bounds."
   (interactive (if (use-region-p)
                    (list (region-beginning) (region-end))
                  (let ((bnd (bounds-of-thing-at-point 'sexp)))
@@ -513,16 +556,15 @@ Argument END end position of region."
 	(when ma
 	  (delete-region (car bounds) (cdr bounds))
 	  (insert
-		   (match-string 1 word)
-		   (number-to-string (+ step (string-to-number
-					      (match-string 2 word))))
-		   (match-string 3 word)))))))
+	   (match-string 1 word)
+	   (number-to-string (+ step (string-to-number
+				      (match-string 2 word))))
+	   (match-string 3 word)))))))
 
 
 
 (defun litex-insert-or-replace-x (beg end)
-  "If a region (BEG to END) is selected, replace * by \times
-otherwise insert \times instead of ×."
+  "If a region (BEG to END) is selected, replace * by \times otherwise insert \times instead of ×."
   (interactive (if (use-region-p)
                    (list (region-beginning) (region-end))
                  (list (point) (point))))
@@ -549,7 +591,8 @@ otherwise insert \times instead of ×."
     (define-key keymap (kbd "l") 'litex-exp-to-latex)
     (define-key keymap (kbd "m") 'litex-exp-in-latex-math)
     (define-key keymap (kbd "A") 'litex-solve-all-steps-equation)
-    (define-key keymap (kbd "a") 'litex-solve-all-steps-eqnarray)
+    (define-key keymap (kbd "a") 'litex-solve-all-steps-align)
+    (define-key keymap (kbd "C-a") 'litex-solve-all-steps-eqnarray)
     keymap))
 
 (define-minor-mode litex-mode
