@@ -6,7 +6,7 @@
 ;; URL: https://github.com/Atreyagaurav/litex-mode
 ;; Version: 0.1
 ;; Keywords: calculator, lisp, LaTeX
-;; Package-Requires: ((cl-lib "0.5") (emacs "24.1"))
+;; Package-Requires: ((cl-lib "0.5") (emacs "24.4"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -267,6 +267,7 @@
   (format "%s = %s \\:\\text{%s}"
 	  (litex-format-variable (car args))
 	  (litex-lisp2latex-all (cadr args))
+	  ;; remove "" from the unit argument.
 	  (string-trim (litex-format-variable
 			(caddr args)) "\"" "\"")))
 
