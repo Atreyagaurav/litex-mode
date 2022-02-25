@@ -17,7 +17,6 @@ For example if you look at this image you can see how just 1 lines of lisp expre
 
 Not only can it convert lisp expressions to latex, it can also, give intermediate solution steps. Perfect for doing homeworks (as that's what I made it for) :P
 
-NOTE: elisp uses integer calculations so ~(/ 1 2)~ is evaluated to 0, be careful of such pitfalls. For now ~(/ 1.0 2)~ is evaluated as ~0.5~, so I'd recommend using floats when you need floats, and I'm working on optional integration with slime which doesn't have this problem.
 
 * How to Use
 
@@ -43,6 +42,8 @@ NOTE: elisp uses integer calculations so ~(/ 1 2)~ is evaluated to 0, be careful
   :commands litex-mode
   :hook text-mode)
 #+end_src
+
+Please look through the Keybindings, Functions, Variables, Known problems and the Tips and Tricks to get 100% out of this package.
 
 * Keybindings
   By default LiTeX-mode doesn't provide any keybindings, but it does have a variable containing bindings for the interactive functions that you can use. 

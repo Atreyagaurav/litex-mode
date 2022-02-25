@@ -35,6 +35,7 @@
 ;;; Code:
 (eval-when-compile (require 'pcase))
 (require 'cl-lib)
+(require 'ob-lisp)
 
 ;; list from:
 ;; https://www.overleaf.com/learn/latex/Operators#Reference_guide
@@ -100,20 +101,15 @@
   "Value of `litex-steps-end-string' to be used in align environment.")
 
 
+(defvar litex-use-slime-for-eval nil
+  "Whether to use slime process for evalulation or not. You need to start slime yourself.")
 
 
-(defvar litex-use-slime-inferior-process nil
-  "Whether to use slime process for evalulation or not.")
-
-
-;; I was thinking something simple as this function but it doesn't
-;; work. Need to find how to make slime eval the sexp and get the
-;; result.
 
 (defun litex-eval (expr)
-  ;; (if litex-use-slime-inferior-process
-  ;;     (slime-eval (prin1-to-string expr))
-    (eval expr))
+  (if litex-use-slime-for-eval
+      (org-babel-execute:lisp (prin1-to-string expr) '())
+    (eval expr)))
 
 ;; Formatting functions
 (defun litex-format-float (val)
