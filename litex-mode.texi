@@ -21,14 +21,35 @@
 @menu
 * Li@TeX{} mode::
 * How to Use::
+* Installation::
+* Usage::
 * Keybindings::
+* Known Problems:: Known Problems. 
+* Tips and Tricks::
 * Explanation for functions::
 * Customization::
-* Configuration::
 * Contributing::
 
 @detailmenu
 --- The Detailed Node Listing ---
+
+Keybindings
+
+* Setting keybindings for individual functions::
+* Setting the whole litex provided keybindings to a prefix key::
+* Complete setup using use-package::
+
+Tips and Tricks
+
+* Using case sensitive symbols::
+* Slime integration::
+* Using Greek letters::
+
+Using Greek letters
+
+* By double escaping the backslash::
+* Using Unicode:: Using Unicode. 
+* Using conversion from their names::
 
 Explanation for functions
 
@@ -62,56 +83,9 @@ The beginning of this mode, and previous codes are here:
 @uref{https://gist.github.com/bpanthi977/4b8ece0eeff3bc05bb82275a23cbb56d, Bibek's gist}
 @item
 @uref{https://github.com/Atreyagaurav/emacs-modules, My previous calculation template mode and first few versions of Li@TeX{}}
-
-Suppose we have this in a text file, we have all the variables and the formula as lisp expressions.
 @end itemize
-@example
-   Net radiation, (setq R_n 185) W/m²
-   Temperature, (setq T 28.5) °C
-   Relative Humidity, (setq Rh .55)
-   Air velocity at 2m height, (setq u_2 2.7) m/s
-   Atmospheric pressure, (setq p 101.3e3) Pa
-   Roughness height, (setq Z_0 0.03) cm
-   (setq Z_2 200) cm
 
-   Energy balance method:
-   (setq E_r (/ (- R_n H_s G) l_v ρ_w))
-
-   Where,
-   (setq l_v (- 2500 (* 2.36 T))) kJ/kg
-   (setq l_v (* l_v 1e3)) J/kg
-   From table 2.5.2
-   (setq ρ_w 996.4) kg/m³
-
-   Assume, (setq H_s 0 G 0)
-   (setq E_r (/ (- R_n H_s G) l_v ρ_w))
-@end example
-
-After evaluating all expressions, we can get the values, while we can also convert them to latex format like this:
-@example
-   Net radiation, R_n = 185 W/m²
-   Temperature, T = 28.5 °C
-   Relative Humidity, Rh = 0.55
-   Air velocity at 2m height, u_2 = 2.7 m/s
-   Atmospheric pressure, p = 1.01 \times 10^@{5@} Pa
-   Roughness height, Z_0 = 0.3 cm
-   Z_2 = 200 cm
-
-   Energy balance method:
-   E_r = \frac@{R_n - H_s - G@}@{l_v ρ_w @}
-
-   Where,
-   l_v = 2500 - 2.360 T  = 2500 - 2.360 \times 28.500  = 2500 - 67.260 = 2432.74 kJ/kg
-   l_v = l_v \times 1000  = 2432740.0 J/kg
-   From table 2.5.2
-   ρ_w = 996.400 kg/m³
-
-   Assume, H_s = 0; G = 0
-   E_r = \frac@{R_n - H_s - G@}@{l_v ρ_w @} = \frac@{185 - 0 - 0@}@{2432.740 \times 996.400 @} = \frac@{185@}@{2432.740 \times 996.400 @} = 7.63 \times 10^@{-05@}
-@end example
-
-So not only can it convert lisp expressions to latex, it can also, give intermediate solution steps. Perfect for doing homeworks (as that's what I made it for) :P
-
+Not only can it convert lisp expressions to latex, it can also, give intermediate solution steps. Perfect for doing homeworks (as that's what I made it for) :P
 
 @node How to Use
 @chapter How to Use
@@ -122,8 +96,58 @@ For Text descriptions refer sections below for details on what each function doe
 
 You can also access it all from texinfo file provided with the package.
 
+@node Installation
+@chapter Installation
+
+You can install it through melpa with @code{M-x package-install litex-mode <ret>}.
+
+Or you can clone this github repo and load it using path.
+
+Configuration section shows how you can add the load path using @code{use-package}.
+
+@node Usage
+@chapter Usage
+
+Using @code{use-package} you can do:
+
+@lisp
+(use-package litex-mode
+  ;; :load-path "/path/to/litex-mode/"
+  :commands litex-mode
+  :hook text-mode)
+@end lisp
+
+Please look through the Keybindings, Functions, Variables, Known problems and the Tips and Tricks to get 100% out of this package.
+
 @node Keybindings
 @chapter Keybindings
+
+By default Li@TeX{}-mode doesn't provide any keybindings, but it does have a variable containing bindings for the interactive functions that you can use.
+
+@menu
+* Setting keybindings for individual functions::
+* Setting the whole litex provided keybindings to a prefix key::
+* Complete setup using use-package::
+@end menu
+
+@node Setting keybindings for individual functions
+@section Setting keybindings for individual functions
+
+You can use @code{local-set-key} to bind individual functions to a key binding.
+@lisp
+  (local-set-key (kbd "×") 'litex-insert-or-replace-x)
+@end lisp
+
+@node Setting the whole litex provided keybindings to a prefix key
+@section Setting the whole litex provided keybindings to a prefix key
+
+You can set a prefix key (@code{C-e} for me here) like in this example, which makes it so you can for example use @code{litex-format-region-last} using @code{C-e f} using the following in your config. In some cases you might have to unset key @code{C-e} because it's used to goto end of line, I'm replacing that because I don't use it (as @code{End} key does the same).
+@lisp
+  (local-set-key (kbd "C-e") litex-key-map)
+@end lisp
+
+
+Contents of litex-key-map are below.
 
 @lisp
 (define-key litex-key-map (kbd "F") 'litex-format-region)
@@ -137,6 +161,97 @@ You can also access it all from texinfo file provided with the package.
 (define-key litex-key-map (kbd "m") 'litex-exp-in-latex-math)
 (define-key litex-key-map (kbd "A") 'litex-sexp-solve-all-steps-equation)
 (define-key litex-key-map (kbd "a") 'litex-sexp-solve-all-steps-eqnarray)
+@end lisp
+
+@node Complete setup using use-package
+@section Complete setup using use-package
+
+This is the complete setup using use-package, if you installed from melpa. If you installed by cloning the repo, uncomment and provide the load path.
+@lisp
+(use-package litex-mode
+  ;; :load-path "/path/to/litex-mode/"
+  :commands litex-mode
+  :hook text-mode
+  :config
+  (local-set-key (kbd "C-e") litex-key-map)
+  (local-set-key (kbd "×") 'litex-insert-or-replace-x))
+@end lisp
+
+@node Known Problems
+@chapter Known Problems:
+
+elisp uses integer calculations so @code{(/ 1 2)} is evaluated to 0, be careful of such pitfalls. For now @code{(/ 1.0 2)} is evaluated as @code{0.5}, so I'd recommend using floats when you need floats.
+
+This problem doesn't exist if you use slime integration.
+
+@node Tips and Tricks
+@chapter Tips and Tricks
+
+@menu
+* Using case sensitive symbols::
+* Slime integration::
+* Using Greek letters::
+@end menu
+
+@node Using case sensitive symbols
+@section Using case sensitive symbols
+
+Inside emacs the symbols are read without case sensitivity, so if you define and variable names @code{ABCD}, it'll replace the variable named @code{abcd}. To avoid that, specially if you have formula with both lowercase and uppercase symbols you can use this customization.
+
+@lisp
+  (setq readtable-case :preserve)
+@end lisp
+
+NOTE: Currently it only works for elisp, and not for slime integration, I'm searching for a solution with slime.
+
+@node Slime integration
+@section Slime integration
+
+If you want to do the calculations in your favorite lisp dilect instead of doing it in elisp, or polluting the emacs environment with your variables, or mistakenly messing something up. You can start a slime process with @code{slime} and use that process to evaluate everything.
+
+You Only need to set this configuration variable true:
+
+@lisp
+(setq litex-use-slime-for-eval t)
+@end lisp
+
+@node Using Greek letters
+@section Using Greek letters
+
+Someone who writes in @LaTeX{} will definitely want to include greek letters, so you can use greek letters multiple ways in Li@TeX{}.
+
+@menu
+* By double escaping the backslash::
+* Using Unicode:: Using Unicode. 
+* Using conversion from their names::
+@end menu
+
+@node By double escaping the backslash
+@subsection By double escaping the backslash
+
+You can use double escape to escape the backslash so you'll get the variable correct. For example: @code{(setq \\alpha 2)} ⇒ @code{\alpha = 2}
+
+@node Using Unicode
+@subsection Using Unicode:
+
+You can input unicode greek letters like α,β,γ@dots{},Σ@dots{},Ω, and they'll be rendered fine by @LaTeX{}. For example: @code{(setq α 2)} ⇒ @code{α = 2}. Which is the default behavior.
+
+If you want to use them to input, but still want to use @LaTeX{} equivalent command then you can set @code{litex-make-unicode-to-latex} to true, that'll convert the unicode to @LaTeX{} command. For example: @code{(setq α 2)} ⇒ @code{@{\alpha@} = 2}.
+
+@lisp
+(setq litex-make-unicode-to-latex t)
+@end lisp
+
+As for how to type unicode directly, you can use Compose key in Linux machines, and there is also @TeX{} input method in emacs that lets you do that. If you type @code{C-u C-\ TeX <RET>} for @TeX{} input method then when you type @code{\alpha} emacs will convert it into unicode @code{α}.
+
+@node Using conversion from their names
+@subsection Using conversion from their names
+
+By default you can use variables names like @code{alpha} without having it any effect, for example: @code{(setq alpha 2)} ⇒ @code{alpha = 2} but if you set the variable @code{litex-make-name-to-latex-glyph} true then you can just convert normal greek character's names to @LaTeX{} symbols.
+Like: @code{(setq alpha 2)} ⇒ @code{@{\alpha@} = 2}
+
+@lisp
+(setq litex-make-name-to-latex-glyph t)
 @end lisp
 
 @node Explanation for functions
@@ -253,7 +368,7 @@ y &=& 2 + 3 + 6 x \\
 
 There are lots of variables that define how each of these functions behave.
 
-@multitable {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
+@multitable {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaaaa} {aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}
 @headitem Variable Name
 @tab Default Value
 @tab What it does
@@ -311,23 +426,31 @@ There are lots of variables that define how each of these functions behave.
 @item litex-math-steps-eqnarray-end-string
 @tab "\\\\"
 @tab Value of `litex-steps-end-string' to be used in eqnarray environment.
+@item litex-math-align-start
+@tab "\"
+@tab Opening syntax for math align environment.
+@item litex-math-align-end
+@tab "\"
+@tab Closing syntax for math align environment.
+@item litex-math-steps-align-join-string
+@tab "& = "
+@tab Value of `litex-steps-join-string' to be used in align environment.
+@item litex-math-steps-align-end-string
+@tab "\\\\"
+@tab Value of `litex-steps-end-string' to be used in align environment.
+@item litex-make-unicode-to-latex
+@tab nil
+@tab Convert unicode to @LaTeX{} equivalent (eg. α -> α)
+@item litex-make-name-to-latex-glyph
+@tab nil
+@tab Convert variables with the same name as a glyph to a @LaTeX{} glyph (eg. alpha -> α).
+@item litex-use-slime-for-eval
+@tab nil
+@tab Whether to use slime process for evalulation or not. You need to start slime yourself.
+@item litex-greek-unicode-latex-alist
+@tab 
+@tab Alist of greek unicode symbols and their @LaTeX{} counterparts.
 @end multitable
-
-@node Configuration
-@chapter Configuration
-
-Clone the repo into your machine and add the path to @code{load-path}, or just load the individual module you want to add.
-
-Sample configuration using @code{use-package} I use is as follows:
-
-@lisp
-(use-package litex-mode
-  :load-path "~/.emacs.d/myfunc/litex-mode/"
-  :commands litex-mode
-  :hook text-mode
-  :config (local-set-key (kbd "C-e") litex-key-map)
-  )
-@end lisp
 
 @node Contributing
 @chapter Contributing
@@ -335,6 +458,8 @@ Sample configuration using @code{use-package} I use is as follows:
 Since this package is new, I'd appreciate contributions on few things:
 
 @itemize
+@item
+Finding bugs and reporting them in github issues.
 @item
 There are many tests to be written for the functions.
 @item
