@@ -35,6 +35,7 @@
 ;;; Code:
 (eval-when-compile (require 'pcase))
 (require 'cl-lib)
+(require 'ob-lisp)
 
 ;; list from:
 ;; https://www.overleaf.com/learn/latex/Operators#Reference_guide
@@ -103,6 +104,9 @@
 (defvar litex-math-steps-align-end-string "\\\\\n"
   "Value of `litex-steps-end-string' to be used in align environment.")
 
+(defvar litex-use-slime-for-eval nil
+  "Whether to use slime process for evalulation or not. You need to start slime yourself.")
+
 
 (defvar litex-greek-unicode-latex-alist
   '(("α" . "alpha")
@@ -149,6 +153,13 @@
   "Unicode symbols and their LaTeX counterparts")
 
 
+
+(defun litex-eval (expr)
+  (if litex-use-slime-for-eval
+      (org-babel-execute:lisp (prin1-to-string expr) '())
+    (eval expr)))
+
+;; Formatting functions
 (defun litex-format-float (val)
   "Function that defines how float VAL is formatted in lisp2latex."
   (if (or (< val litex-format-float-lower-limit)
@@ -389,23 +400,23 @@ format."
 (defun litex-substitute-values (expression)
   "Gives a string from EXPRESSION substituting the values."
   (condition-case nil
-      (if (functionp expression)
-	  (format "%s" expression)
-	(if (symbolp expression)
-	    (format "%s" (eval expression))
-	  (if (consp expression)
-	      (format "(%s)"
-		      (mapconcat #'litex-substitute-values expression " "))
-	    (prin1-to-string expression))))
-    ;; this will catch error for undefined variables.
-    (void-variable (prin1-to-string expression))))
+   (if (functionp expression)
+      (format "%s" expression)
+    (if (symbolp expression)
+	(format "%s" (litex-eval expression))
+      (if (consp expression)
+	  (format "(%s)"
+		  (mapconcat #'litex-substitute-values expression " "))
+	(prin1-to-string expression))))
+   ;; this will catch error for undefined variables.
+   (void-variable (prin1-to-string expression))))
 
 
 (defun litex-solve-single-step (form)
   "Solves a single step of calculation in FORM."
   (cond ((listp form)
          (if (cl-every #'numberp (cl-rest form))
-             (eval form)
+             (litex-eval form)
            (cons (cl-first form)
 		 (mapcar #'litex-solve-single-step (cl-rest form)))))
 	((functionp form)
@@ -461,7 +472,7 @@ format."
   (interactive)
   (backward-kill-sexp)
   (condition-case nil
-      (prin1 (eval (read (current-kill 0)))
+      (prin1 (litex-eval (read (current-kill 0)))
              (current-buffer))
     (error (message "Invalid expression")
            (insert (current-kill 0)))))
@@ -475,7 +486,7 @@ format."
       (insert (current-kill 0)
 	      litex-steps-join-string
 	      (format "%s"
-		      (eval (read (current-kill 0)))))
+		      (litex-eval (read (current-kill 0)))))
     (error (message "Invalid expression"))))
 
 
@@ -571,9 +582,9 @@ Argument END end position of region."
                  (let ((bnd (bounds-of-thing-at-point 'sexp)))
 		   (list (cl-first bnd) (cl-rest bnd)))))
   (let ((text (buffer-substring-no-properties beg end)))
-    ;; maybe I should make it eval if given expression
+    ;; maybe I should make it litex-eval if given expression
     (if (string-match-p "%[0-9.]*[dfex]" litex-format-float-string)
-	(setq text (eval (read text))))
+	(setq text (litex-eval (read text))))
     (kill-region beg end)
     (insert (format litex-format-float-string text))))
 

@@ -17,7 +17,35 @@ For example if you look at this image you can see how just 1 lines of lisp expre
 
 Not only can it convert lisp expressions to latex, it can also, give intermediate solution steps. Perfect for doing homeworks (as that's what I made it for) :P
 
-NOTE: elisp uses integer calculations so ~(/ 1 2)~ is evaluated to 0, be careful of such pitfalls. For now ~(/ 1.0 2)~ is evaluated as ~0.5~, so I'd recommend using floats when you need floats, and I'm working on optional integration with slime which doesn't have this problem.
+
+* Table of contents :TOC:
+- [[#litex-mode][LiTeX mode]]
+- [[#how-to-use][How to Use]]
+- [[#installation][Installation]]
+- [[#usage][Usage]]
+- [[#keybindings][Keybindings]]
+  - [[#setting-keybindings-for-individual-functions][Setting keybindings for individual functions]]
+  - [[#setting-the-whole-litex-provided-keybindings-to-a-prefix-key][Setting the whole litex provided keybindings to a prefix key]]
+  - [[#complete-setup-using-use-package][Complete setup using use-package]]
+- [[#known-problems][Known Problems:]]
+- [[#tips-and-tricks][Tips and Tricks]]
+  - [[#using-case-sensitive-symbols][Using case sensitive symbols]]
+  - [[#slime-integration][Slime integration]]
+  - [[#using-greek-letters][Using Greek letters]]
+- [[#explanation-for-functions][Explanation for functions]]
+  - [[#litex-format-region-last][litex-format-region-last]]
+  - [[#litex-format-region][litex-format-region]]
+  - [[#litex-eval-and-replace][litex-eval-and-replace]]
+  - [[#litex-eval-and-insert][litex-eval-and-insert]]
+  - [[#litex-sexp-to-latex-exp][litex-sexp-to-latex-exp]]
+  - [[#litex-sexp-solve-all-steps][litex-sexp-solve-all-steps]]
+  - [[#litex-increment-number][litex-increment-number]]
+  - [[#litex-exp-to-latex][litex-exp-to-latex]]
+  - [[#litex-exp-in-latex-math][litex-exp-in-latex-math]]
+  - [[#litex-sexp-solve-all-steps-equation][litex-sexp-solve-all-steps-equation]]
+  - [[#litex-sexp-solve-all-steps-eqnarray][litex-sexp-solve-all-steps-eqnarray]]
+- [[#customization][Customization]]
+- [[#contributing][Contributing]]
 
 * How to Use
 
@@ -43,6 +71,8 @@ NOTE: elisp uses integer calculations so ~(/ 1 2)~ is evaluated to 0, be careful
   :commands litex-mode
   :hook text-mode)
 #+end_src
+
+Please look through the Keybindings, Functions, Variables, Known problems and the Tips and Tricks to get 100% out of this package.
 
 * Keybindings
   By default LiTeX-mode doesn't provide any keybindings, but it does have a variable containing bindings for the interactive functions that you can use.
@@ -91,7 +121,31 @@ Contents of litex-key-map are below.
   (local-set-key (kbd "×") 'litex-insert-or-replace-x))
   #+end_src
 
+
+* Known Problems:
+   elisp uses integer calculations so ~(/ 1 2)~ is evaluated to 0, be careful of such pitfalls. For now ~(/ 1.0 2)~ is evaluated as ~0.5~, so I'd recommend using floats when you need floats.
+
+   This problem doesn't exist if you use slime integration.
+
 * Tips and Tricks
+
+** Using case sensitive symbols
+   Inside emacs the symbols are read without case sensitivity, so if you define and variable names ~ABCD~, it'll replace the variable named ~abcd~. To avoid that, specially if you have formula with both lowercase and uppercase symbols you can use this customization.
+
+   #+begin_src emacs-lisp :tangle yes
+  (setq readtable-case :preserve)
+   #+end_src
+
+   NOTE: Currently it only works for elisp, and not for slime integration, I'm searching for a solution with slime.
+
+** Slime integration
+   If you want to do the calculations in your favorite lisp dilect instead of doing it in elisp, or polluting the emacs environment with your variables, or mistakenly messing something up. You can start a slime process with ~slime~ and use that process to evaluate everything.
+
+   You Only need to set this configuration variable true:
+
+#+begin_src emacs-lisp :tangle yes
+(setq litex-use-slime-for-eval t)
+#+end_src
 
 ** Using Greek letters
    Someone who writes in LaTeX will definitely want to include greek letters, so you can use greek letters multiple ways in LiTeX.
