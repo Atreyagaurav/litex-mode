@@ -150,11 +150,12 @@
     ("Φ" . "Phi")
     ("Ψ" . "Psi")
     ("Ω" . "Omega"))
-  "Unicode symbols and their LaTeX counterparts")
+  "Alist of greek unicode symbols and their LaTeX counterparts.")
 
 
 
 (defun litex-eval (expr)
+  "Eval funcion used by LiTeX, evals the EXPR in elisp or slime."
   (if litex-use-slime-for-eval
       (org-babel-execute:lisp (prin1-to-string expr) '())
     (eval expr)))
