@@ -35,6 +35,7 @@
 ;;; Code:
 (eval-when-compile (require 'pcase))
 (require 'cl-lib)
+(require 'ob-lisp)
 
 ;; list from:
 ;; https://www.overleaf.com/learn/latex/Operators#Reference_guide
@@ -44,6 +45,10 @@
 	arctan cot det hom lim log sec tan arg coth dim liminf max
 	sin tanh)
   "Lisp functions that have their own latex commands.")
+(defvar litex-make-unicode-to-latex nil
+  "Whether to convert unicode to LaTeX equivalent (eg. α -> \alpha). These work better in math mode.")
+(defvar litex-make-name-to-latex-glyph nil
+  "Whether to convert variables with the same name as a glyph to a LaTeX glyph (eg. alpha -> \alpha).")
 (defvar litex-make-hyphenated-to-subscript t
   "Whether to make the hyphenated variables subscript or not.")
 (defvar litex-latex-maybe-enclose? nil
@@ -99,9 +104,63 @@
 (defvar litex-math-steps-align-end-string "\\\\\n"
   "Value of `litex-steps-end-string' to be used in align environment.")
 
+(defvar litex-use-slime-for-eval nil
+  "Whether to use slime process for evalulation or not. You need to start slime yourself.")
+
+
+(defvar litex-greek-unicode-latex-alist
+  '(("α" . "alpha")
+    ("β" . "beta")
+    ("γ" . "gamma")
+    ("δ" . "delta")
+    ("ε" . "epsilon")
+    ("ϵ" . "varepsilon")
+    ("ζ" . "zeta")
+    ("η" . "eta")
+    ("θ" . "theta")
+    ("ϑ" . "vartheta")
+    ("ι" . "iota")
+    ("κ" . "kappa")
+    ("λ" . "lambda")
+    ("μ" . "mu")
+    ("ν" . "nu")
+    ("ξ" . "xi")
+    ("π" . "pi")
+    ("ρ" . "rho")
+    ("ϱ" . "varrho")
+    ("σ" . "sigma")
+    ("τ" . "tau")
+    ("υ" . "upsilon")
+    ("φ" . "phi")
+    ("φ" . "varphi")
+    ("χ" . "chi")
+    ("ψ" . "psi")
+    ("ω" . "omega")
+    
+    ("Γ" . "Gamma")
+    ("Δ" . "Delta")
+    ("Ζ" . "Zeta")
+    ("Θ" . "Theta")
+    ("Λ" . "Lambda")
+    ("Ξ" . "Xi")
+    ("Π" . "Pi")
+    ("Ρ" . "Rho")
+    ("Σ" . "Sigma")
+    ("Υ" . "Upsilon")
+    ("Φ" . "Phi")
+    ("Ψ" . "Psi")
+    ("Ω" . "Omega"))
+  "Alist of greek unicode symbols and their LaTeX counterparts.")
 
 
 
+(defun litex-eval (expr)
+  "Eval funcion used by LiTeX, evals the EXPR in elisp or slime."
+  (if litex-use-slime-for-eval
+      (org-babel-execute:lisp (prin1-to-string expr) '())
+    (eval expr)))
+
+;; Formatting functions
 (defun litex-format-float (val)
   "Function that defines how float VAL is formatted in lisp2latex."
   (if (or (< val litex-format-float-lower-limit)
@@ -126,15 +185,33 @@
     expr))
 
 
+(defun litex-format-greek-characters (string)
+  "Format STRING to Greek LaTeX notation if it has greek unicode or character name."
+  (let ((var-str string)
+	(var-assoc nil))
+    (when litex-make-name-to-latex-glyph
+      (when (rassoc var-str litex-greek-unicode-latex-alist)
+	(setq var-str (concat "{\\" var-str "}"))))
+    (when litex-make-unicode-to-latex
+      (setq var-assoc (cdr (assoc var-str litex-greek-unicode-latex-alist)))
+      (when var-assoc
+	(setq var-str
+	      (concat "{\\" var-assoc "}"))))
+    var-str))
+
+
 (defun litex-format-variable (var)
   "Format variable VAR for LaTeX."
-  (let ((var-str (prin1-to-string var)))
-    (if litex-make-hyphenated-to-subscript
-	(while (string-match "\\([^-]+\\)[-]\\(.*\\)" var-str)
-	  (setq var-str (format "%s_{%s}"
-				(match-string 1 var-str)
-				(match-string 2 var-str)))))
-    var-str))
+  (let ((var-strs (mapcar
+		   (lambda (s) (mapconcat #'litex-format-greek-characters
+				     (split-string s "/") ""))
+		   (split-string (prin1-to-string var t) "-"))))
+
+    (let ((var-final (car var-strs)))
+      (if (> (length var-strs) 1)
+	  (cl-loop for (cvar . rest) on (cl-rest var-strs) do
+		   (setq var-final (format "%s_{%s}" var-final cvar))))
+      var-final)))
 
 
 (defun litex-latex-maybe-enclose (form)
@@ -306,7 +383,7 @@ format."
     ;; simple variables
     (_
      (cond ((floatp form) (litex-format-float form))
-	   ((symbolp form) (litex-format-variable form))
+	   ((or (symbolp form) (stringp form)) (litex-format-variable form))
            (t (prin1-to-string form))))))
 
 
@@ -324,23 +401,23 @@ format."
 (defun litex-substitute-values (expression)
   "Gives a string from EXPRESSION substituting the values."
   (condition-case nil
-      (if (functionp expression)
-	  (format "%s" expression)
-	(if (symbolp expression)
-	    (format "%s" (eval expression))
-	  (if (consp expression)
-	      (format "(%s)"
-		      (mapconcat #'litex-substitute-values expression " "))
-	    (prin1-to-string expression))))
-    ;; this will catch error for undefined variables.
-    (void-variable (prin1-to-string expression))))
+   (if (functionp expression)
+      (format "%s" expression)
+    (if (symbolp expression)
+	(format "%s" (litex-eval expression))
+      (if (consp expression)
+	  (format "(%s)"
+		  (mapconcat #'litex-substitute-values expression " "))
+	(prin1-to-string expression))))
+   ;; this will catch error for undefined variables.
+   (void-variable (prin1-to-string expression))))
 
 
 (defun litex-solve-single-step (form)
   "Solves a single step of calculation in FORM."
   (cond ((listp form)
          (if (cl-every #'numberp (cl-rest form))
-             (eval form)
+             (litex-eval form)
            (cons (cl-first form)
 		 (mapcar #'litex-solve-single-step (cl-rest form)))))
 	((functionp form)
@@ -396,7 +473,7 @@ format."
   (interactive)
   (backward-kill-sexp)
   (condition-case nil
-      (prin1 (eval (read (current-kill 0)))
+      (prin1 (litex-eval (read (current-kill 0)))
              (current-buffer))
     (error (message "Invalid expression")
            (insert (current-kill 0)))))
@@ -410,7 +487,7 @@ format."
       (insert (current-kill 0)
 	      litex-steps-join-string
 	      (format "%s"
-		      (eval (read (current-kill 0)))))
+		      (litex-eval (read (current-kill 0)))))
     (error (message "Invalid expression"))))
 
 
@@ -506,9 +583,9 @@ Argument END end position of region."
                  (let ((bnd (bounds-of-thing-at-point 'sexp)))
 		   (list (cl-first bnd) (cl-rest bnd)))))
   (let ((text (buffer-substring-no-properties beg end)))
-    ;; maybe I should make it eval if given expression
+    ;; maybe I should make it litex-eval if given expression
     (if (string-match-p "%[0-9.]*[dfex]" litex-format-float-string)
-	(setq text (eval (read text))))
+	(setq text (litex-eval (read text))))
     (kill-region beg end)
     (insert (format litex-format-float-string text))))
 
