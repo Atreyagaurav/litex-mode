@@ -32,7 +32,7 @@ NOTE: elisp uses integer calculations so ~(/ 1 2)~ is evaluated to 0, be careful
 
   Or you can clone this github repo and load it using path.
 
-  Configuration section shows how you can add the load path using ~use-package~. 
+  Configuration section shows how you can add the load path using ~use-package~.
 
 * Usage
     Using ~use-package~ you can do:
@@ -45,15 +45,15 @@ NOTE: elisp uses integer calculations so ~(/ 1 2)~ is evaluated to 0, be careful
 #+end_src
 
 * Keybindings
-  By default LiTeX-mode doesn't provide any keybindings, but it does have a variable containing bindings for the interactive functions that you can use. 
+  By default LiTeX-mode doesn't provide any keybindings, but it does have a variable containing bindings for the interactive functions that you can use.
 
-  
+
 ** Setting keybindings for individual functions
    You can use ~local-set-key~ to bind individual functions to a key binding.
 #+begin_src emacs-lisp :tangle yes
   (local-set-key (kbd "×") 'litex-insert-or-replace-x)
 #+end_src
-   
+
 ** Setting the whole litex provided keybindings to a prefix key
 
    You can set a prefix key (~C-e~ for me here) like in this example, which makes it so you can for example use ~litex-format-region-last~ using ~C-e f~ using the following in your config. In some cases you might have to unset key ~C-e~ because it's used to goto end of line, I'm replacing that because I don't use it (as ~End~ key does the same).
@@ -61,7 +61,7 @@ NOTE: elisp uses integer calculations so ~(/ 1 2)~ is evaluated to 0, be careful
   (local-set-key (kbd "C-e") litex-key-map)
    #+end_src
 
-   
+
 Contents of litex-key-map are below.
 
   #+begin_src emacs-lisp :tangle yes
@@ -78,7 +78,7 @@ Contents of litex-key-map are below.
 (define-key litex-key-map (kbd "a") 'litex-sexp-solve-all-steps-eqnarray)
   #+end_src
 
-  
+
 ** Complete setup using use-package
    This is the complete setup using use-package, if you installed from melpa. If you installed by cloning the repo, uncomment and provide the load path.
   #+begin_src emacs-lisp :tangle yes
@@ -90,6 +90,33 @@ Contents of litex-key-map are below.
   (local-set-key (kbd "C-e") litex-key-map)
   (local-set-key (kbd "×") 'litex-insert-or-replace-x))
   #+end_src
+
+* Tips and Tricks
+
+** Using Greek letters
+   Someone who writes in LaTeX will definitely want to include greek letters, so you can use greek letters multiple ways in LiTeX.
+
+*** By double escaping the backslash
+    You can use double escape to escape the backslash so you'll get the variable correct. For example: ~(setq \\alpha 2)~ ⇒ ~\alpha = 2~
+
+*** Using Unicode:
+    You can input unicode greek letters like α,β,γ...,Σ...,Ω, and they'll be rendered fine by LaTeX. For example: ~(setq α 2)~ ⇒ ~α = 2~. Which is the default behavior.
+
+    If you want to use them to input, but still want to use LaTeX equivalent command then you can set ~litex-make-unicode-to-latex~ to true, that'll convert the unicode to LaTeX command. For example: ~(setq α 2)~ ⇒ ~{\alpha} = 2~.
+
+    #+begin_src emacs-lisp :tangle yes
+(setq litex-make-unicode-to-latex t)
+    #+end_src
+
+    As for how to type unicode directly, you can use Compose key in Linux machines, and there is also TeX input method in emacs that lets you do that. If you type ~C-u C-\ TeX <RET>~ for TeX input method then when you type ~\alpha~ emacs will convert it into unicode ~α~.
+
+*** Using conversion from their names
+    By default you can use variables names like ~alpha~ without having it any effect, for example: ~(setq alpha 2)~ ⇒ ~alpha = 2~ but if you set the variable ~litex-make-name-to-latex-glyph~ true then you can just convert normal greek character's names to LaTeX symbols.
+Like: ~(setq alpha 2)~ ⇒ ~{\alpha} = 2~
+
+    #+begin_src emacs-lisp :tangle yes
+(setq litex-make-name-to-latex-glyph t)
+    #+end_src
 
 
 * Explanation for functions
@@ -169,29 +196,35 @@ y &=& 2 + 3 + 6 x \\
 * Customization
   There are lots of variables that define how each of these functions behave.
 
-| Variable Name                         | Default Value          | What it does                                                            |
-|---------------------------------------+------------------------+-------------------------------------------------------------------------|
-| litex-latex-functions                 | '(sin cos tan)         | Lisp functions that have their own latex commands.                     |
-| litex-make-hyphenated-to-subscript    | t                      | Whether to make the hyphenated variables subscript or not.             |
-| litex-latex-maybe-enclose?            | nil                    | Enclose latex converted to paran if needed.                            |
-| litex-format-float-string             | "%.3f"                 | Format string to be used by floats.                                    |
-| litex-format-float-upper-limit        | 1e4                    | Upper limit of what number is formatted as float.                      |
-| litex-format-float-lower-limit        | 1e-2                   | Lower limit of what number is formatted as float.                      |
-| litex-steps-join-string               | "= "                   | String used for joining strings in steps of a solution.                |
-| litex-steps-end-string                | " "                    | String used at the end of each strings in steps of a solution.         |
-| litex-math-inline-start               | "\\("                  | Opening syntax for math inline environment.                            |
-| litex-math-inline-end                 | "\\)"                  | Closing syntax for math inline environment.                            |
-| litex-math-equation-start             | "\\begin{equation}\n"  | Opening syntax for math equation environment.                          |
-| litex-math-equation-end               | "\n\\end{equation}\n"  | Closing syntax for math equation environment.                          |
-| litex-math-steps-equation-join-string | "= "                   | Value of `litex-steps-join-string' to be used in equation environment. |
-| litex-math-steps-equation-end-string  | " "                    | Value of `litex-steps-end-string' to be used in equation environment.  |
-| litex-math-eqnarray-start             | "\\begin{eqnarray*}\n" | Opening syntax for math eqnarray environment.                          |
-| litex-math-eqnarray-end               | "\n\\end{eqnarray*}\n" | Closing syntax for math eqnarray environment.                          |
-| litex-math-steps-eqnarray-join-string | " &=& "                | Value of `litex-steps-join-string' to be used in eqnarray environment. |
-| litex-math-steps-eqnarray-end-string  | "\\\\\n"               | Value of `litex-steps-end-string' to be used in eqnarray environment.  |
+| Variable Name                         | Default Value          | What it does                                                                            |
+|---------------------------------------+------------------------+-----------------------------------------------------------------------------------------|
+| litex-latex-functions                 | '(sin cos tan)         | Lisp functions that have their own latex commands.                                      |
+| litex-make-hyphenated-to-subscript    | t                      | Whether to make the hyphenated variables subscript or not.                              |
+| litex-latex-maybe-enclose?            | nil                    | Enclose latex converted to paran if needed.                                             |
+| litex-format-float-string             | "%.3f"                 | Format string to be used by floats.                                                     |
+| litex-format-float-upper-limit        | 1e4                    | Upper limit of what number is formatted as float.                                       |
+| litex-format-float-lower-limit        | 1e-2                   | Lower limit of what number is formatted as float.                                       |
+| litex-steps-join-string               | "= "                   | String used for joining strings in steps of a solution.                                 |
+| litex-steps-end-string                | " "                    | String used at the end of each strings in steps of a solution.                          |
+| litex-math-inline-start               | "\\("                  | Opening syntax for math inline environment.                                             |
+| litex-math-inline-end                 | "\\)"                  | Closing syntax for math inline environment.                                             |
+| litex-math-equation-start             | "\\begin{equation}\n"  | Opening syntax for math equation environment.                                           |
+| litex-math-equation-end               | "\n\\end{equation}\n"  | Closing syntax for math equation environment.                                           |
+| litex-math-steps-equation-join-string | "= "                   | Value of `litex-steps-join-string' to be used in equation environment.                  |
+| litex-math-steps-equation-end-string  | " "                    | Value of `litex-steps-end-string' to be used in equation environment.                   |
+| litex-math-eqnarray-start             | "\\begin{eqnarray*}\n" | Opening syntax for math eqnarray environment.                                           |
+| litex-math-eqnarray-end               | "\n\\end{eqnarray*}\n" | Closing syntax for math eqnarray environment.                                           |
+| litex-math-steps-eqnarray-join-string | " &=& "                | Value of `litex-steps-join-string' to be used in eqnarray environment.                  |
+| litex-math-steps-eqnarray-end-string  | "\\\\\n"               | Value of `litex-steps-end-string' to be used in eqnarray environment.                   |
+| litex-math-align-start                | "\\begin{align*}\n"    | Opening syntax for math align environment.                                              |
+| litex-math-align-end                  | "\n\\end{align*}\n"    | Closing syntax for math align environment.                                              |
+| litex-math-steps-align-join-string    | "& = "                 | Value of `litex-steps-join-string' to be used in align environment.                     |
+| litex-math-steps-align-end-string     | "\\\\\n"               | Value of `litex-steps-end-string' to be used in align environment.                      |
+| litex-make-unicode-to-latex           | nil                    | Convert unicode to LaTeX equivalent (eg. α -> \alpha)                                   |
+| litex-make-name-to-latex-glyph        | nil                    | Convert variables with the same name as a glyph to a LaTeX glyph (eg. alpha -> \alpha). |
 
 
-  
+
 * Contributing
   Since this package is new, I'd appreciate contributions on few things:
 
