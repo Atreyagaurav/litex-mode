@@ -303,6 +303,22 @@
   (concat (litex-lisp2latex-all (car args)) " - 1"))
 
 
+;; TODO move all these to a list called simple operators and apply the same map to all of them.
+(defun litex-format-args-= (args)
+  "Formatting function for = called with ARGS operator."
+  (mapconcat #'litex-lisp2latex-all args " = "))
+
+
+(defun litex-format-args-< (args)
+  "Formatting function for < called with ARGS operator."
+  (mapconcat #'litex-lisp2latex-all args " < "))
+
+
+(defun litex-format-args-> (args)
+  "Formatting function for < called with ARGS operator."
+  (mapconcat #'litex-lisp2latex-all args " > "))
+
+
 (defun litex-format-args-expt (args)
   "Formatting function for expt function called with ARGS."
   (let ((base (car args))
@@ -346,6 +362,24 @@
 	    (litex-format-variable func-name)
 	    (mapconcat #'prin1-to-string fargs ",")
 	    (litex-lisp2latex-all expr))))
+
+(defun litex-format-args-if (args)
+  "Formatting function for if cases with ARGS."
+  (let ((condition (car args))
+	(if-true (cadr args))
+	(if-false (caddr args)))
+    (if if-false
+    (format "
+\\begin{cases}
+  %s & \\text{if} %s \\\\
+  %s & otherwise
+\\end{cases}"
+	    (litex-lisp2latex-all if-true)
+	    (litex-lisp2latex-all condition)
+	    (litex-lisp2latex-all if-false))
+    (format "%s \text{if} %s"
+	    (litex-lisp2latex-all if-true)
+	    (litex-lisp2latex-all condition)))))
 
 
 (defun litex-format-args-default (func args)
