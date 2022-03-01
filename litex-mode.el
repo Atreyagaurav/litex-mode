@@ -214,13 +214,15 @@
       var-final)))
 
 
+;; this function needs some serious thoughts
 (defun litex-latex-maybe-enclose (form)
-  "Encloses FORM in parantheis if LITEX-LATEX-MAYBE-ENCLOSE is true."
+  "Encloses FORM in parantheis if LITEX-LATEX-MAYBE-ENCLOSE? is true."
   (let* ((latex (litex-lisp2latex-all form)))
-    (if (and (consp form)
-	     (not (and (functionp (car form))
-		       (litex-latex-enclose-check-function (car form))))
-	     litex-latex-maybe-enclose?)
+    (if (and 
+	 ;; litex-latex-maybe-enclose?
+	 (consp form)
+	 (not (and (functionp (car form))
+		   (litex-latex-enclose-check-function (car form)))))
         (format "%s %s %s"
 		litex-math-brackets-start
 		latex
@@ -234,7 +236,7 @@
       nil
     (or
      (> (length args) 1)
-     (listp (car args)))))
+     (cl-some #'listp args))))
 
 
 (defun litex-latex-enclose-check-function (func)
@@ -251,7 +253,7 @@
 (defun litex-format-args-+ (args)
   "Formatting function for + operator called with ARGS."
   (let ((litex-latex-maybe-enclose? t))
-    (mapconcat #'litex-lisp2latex-all args " + ")))
+    (mapconcat #'litex-latex-maybe-enclose args " + ")))
 
 
 (defun litex-format-args-- (args)
@@ -259,9 +261,9 @@
   (let ((arg1 (car args))
 	(arg-rest (cdr args)))
     (if arg-rest
-        (format "%s - %s" (litex-lisp2latex-all arg1)
-                (mapconcat #'litex-lisp2latex-all arg-rest " - "))
-      (format "-%s" (litex-lisp2latex-all arg1)))))
+        (format "%s - %s" (litex-latex-maybe-enclose arg1)
+                (mapconcat #'litex-latex-maybe-enclose arg-rest " - "))
+      (format "-%s" (litex-latex-maybe-enclose arg1)))))
 
 
 (defun litex-format-args-* (args)
@@ -271,6 +273,7 @@
 	     (let* ((litex-latex-maybe-enclose?
 		     (or (> (length args) 1)
 			 (litex-latex-enclose-check-args me))))
+
 	       (princ (format "%s"
 			      (litex-latex-maybe-enclose me)))
 	       (if (and next
@@ -288,19 +291,19 @@
 	(litex-latex-maybe-enclose? nil))
     (if arg-rest
 	(format "\\frac{%s}{%s}"
-		(litex-lisp2latex-all arg1)
-		(litex-lisp2latex-all (cons '* arg-rest)))
-      (format "\\frac1{%s}" (litex-lisp2latex-all arg1)))))
+		(litex-latex-maybe-enclose arg1)
+		(litex-latex-maybe-enclose (cons '* arg-rest)))
+      (format "\\frac1{%s}" (litex-latex-maybe-enclose arg1)))))
 
 
 (defun litex-format-args-1+ (args)
   "Formatting function for 1+ called with ARGS operator."
-  (concat (litex-lisp2latex-all (car args)) " + 1"))
+  (concat (litex-latex-maybe-enclose (car args)) " + 1"))
 
 
 (defun litex-format-args-1- (args)
   "Formatting function for 1- called with ARGS operator."
-  (concat (litex-lisp2latex-all (car args)) " - 1"))
+  (concat (litex-latex-maybe-enclose (car args)) " - 1"))
 
 
 (defun litex-format-args-expt (args)
@@ -310,17 +313,17 @@
     (if (listp base)
 	(format "%s %s %s^{%s}"
 		litex-math-brackets-start
-		(litex-lisp2latex-all base)
+		(litex-latex-maybe-enclose base)
 		litex-math-brackets-end
-		(litex-lisp2latex-all power))
+		(litex-latex-maybe-enclose power))
       (format "%s^{%s}"
-	      (litex-lisp2latex-all base)
-	      (litex-lisp2latex-all power)))))
+	      (litex-latex-maybe-enclose base)
+	      (litex-latex-maybe-enclose power)))))
 
 
 (defun litex-format-args-sqrt (args)
   "Formatting function for sqrt function called with ARGS."
-  (format "\\sqrt{%s}" (litex-lisp2latex-all (car args))))
+  (format "\\sqrt{%s}" (litex-latex-maybe-enclose (car args))))
 
 
 (defun litex-format-args-setq (args)
@@ -328,8 +331,8 @@
   (with-output-to-string
     (cl-loop for (a b . rest) on args by #'cddr do
 	     (princ (format "%s = %s"
-			    (litex-lisp2latex-all a)
-			    (litex-lisp2latex-all b)))
+			    (litex-latex-maybe-enclose a)
+			    (litex-latex-maybe-enclose b)))
 	     (when rest (princ "; ")))))
 
 
@@ -345,7 +348,7 @@
     (format "\\mathrm{%s}(%s):%s"
 	    (litex-format-variable func-name)
 	    (mapconcat #'prin1-to-string fargs ",")
-	    (litex-lisp2latex-all expr))))
+	    (litex-latex-maybe-enclose expr))))
 
 
 (defun litex-format-args-default (func args)
@@ -370,7 +373,7 @@ format."
 						litex-math-brackets-end)
 				      " %s"))))
 	(format format-string func
-		(mapconcat #'litex-lisp2latex-all args ","))))))
+		(mapconcat #'litex-latex-maybe-enclose args ","))))))
 
 
 (defun litex-lisp2latex-all (form)

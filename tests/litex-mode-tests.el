@@ -121,8 +121,13 @@
   ;; this one is failing
   (should (string= (litex-lisp2latex-all
 		    '(setq x (- t 6 (* 5 60 (/ x 2)))))
-		   "x = t - 6 - 5 \\times 60\\left( \\frac{x}{2} \\right)"))
+		   "x = t - 6 - 5 \\times 60\\frac{x}{2}"))
   (should (string= (litex-lisp2latex-all
 		    '(fun x 2 (/ 5 (+ 6 7) x)))
 		   "\\mathrm{fun}(x,2,\\frac{5}{\\left( 6 + 7 \\right)x})"))
   )
+
+(litex-format-args-* '((+ 2 3) 1))
+
+(setq litex-latex-maybe-enclose? t)
+(litex-latex-enclose-check-function '+)
