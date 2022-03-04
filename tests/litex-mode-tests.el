@@ -76,9 +76,10 @@
     (should (string= (litex-format-args-/ '(1 2)) "\\frac{1}{2}"))
     (should (string= (litex-format-args-/ '(x 2)) "\\frac{x}{2}"))
     (should (string= (litex-format-args-/ '(1 y)) "\\frac{1}{y}"))
-    (should (string= (litex-format-args-/ '(1 2 y)) "\\frac{1}{2y}"))
-    (should (string= (litex-format-args-/
-		      '(1 2 y 3)) "\\frac{1}{2y \\times 3}"))
+    (should (string= (litex-format-args-/ '(1 2 y))
+		     "\\frac{1}{2y}"))
+    (should (string= (litex-format-args-/ '(1 2 y 3))
+		     "\\frac{1}{2y \\times 3}"))
     (should (string= (litex-format-args-/ '(x y)) "\\frac{x}{y}"))
     (should (string= (litex-format-args-/ '(2)) "\\frac1{2}"))
     (should (string= (litex-format-args-/ '(x)) "\\frac1{x}")))
@@ -117,15 +118,14 @@
   (should (string= (litex-lisp2latex-all '(1- (* 2 x))) "2x - 1"))
   (should (string= (litex-lisp2latex-all
 		    '(setq x (- t 6 (* 5 60 (/ x)))))
-		   "x = t - 6 - 5 \\times 60\\left( \\frac1{x} \\right)"))
+		   "x = t - 6 -  \\left( 5 \\times 60\\frac1{x} \\right) "))
   ;; this one is failing
   (should (string= (litex-lisp2latex-all
 		    '(setq x (- t 6 (* 5 60 (/ x 2)))))
-		   "x = t - 6 - 5 \\times 60\\frac{x}{2}"))
+		   "x = t - 6 -  \\left( 5 \\times 60 \\left( \\frac{x}{2} \\right)  \\right) "))
   (should (string= (litex-lisp2latex-all
 		    '(fun x 2 (/ 5 (+ 6 7) x)))
-		   "\\mathrm{fun}(x,2,\\frac{5}{\\left( 6 + 7 \\right)x})"))
-  )
+		   "\\text{fun}\\left(x,2,\\frac{5}{ \\left( 6 + 7 \\right) x}\\right)")))
 
 (litex-format-args-* '((+ 2 3) 1))
 

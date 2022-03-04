@@ -46,13 +46,13 @@
 	sin tanh)
   "Lisp functions that have their own latex commands.")
 (defvar litex-make-unicode-to-latex nil
-  "Whether to convert unicode to LaTeX equivalent (eg. α -> \alpha). These work better in math mode.")
+  "Whether to convert unicode to LaTeX equivalent (eg. α -> \alpha).  These work better in math mode.")
 (defvar litex-make-name-to-latex-glyph nil
   "Whether to convert variables with the same name as a glyph to a LaTeX glyph (eg. alpha -> \alpha).")
 (defvar litex-make-hyphenated-to-subscript t
   "Whether to make the hyphenated variables subscript or not.")
-(defvar litex-latex-maybe-enclose? nil
-  "Enclose latex converted to paran if needed.")
+(defvar litex-latex-always-enclose? nil
+  "Always enclose latex converted with paran.")
 (defvar litex-keep-sexp-in-buffer nil
   "Keep the last sexp on point if true, else replace it.")
 
@@ -105,7 +105,7 @@
   "Value of `litex-steps-end-string' to be used in align environment.")
 
 (defvar litex-use-slime-for-eval nil
-  "Whether to use slime process for evalulation or not. You need to start slime yourself.")
+  "Whether to use slime process for evalulation or not.  You need to start slime yourself.")
 
 
 (defvar litex-greek-unicode-latex-alist
@@ -136,7 +136,7 @@
     ("χ" . "chi")
     ("ψ" . "psi")
     ("ω" . "omega")
-    
+
     ("Γ" . "Gamma")
     ("Δ" . "Delta")
     ("Ζ" . "Zeta")
@@ -155,7 +155,7 @@
 
 
 (defun litex-eval (expr)
-  "Eval funcion used by LiTeX, evals the EXPR in elisp or slime."
+  "Eval funcion used by LiTeX, evaluate the EXPR in elisp or slime."
   (if litex-use-slime-for-eval
       (org-babel-execute:lisp (prin1-to-string expr) '())
     (eval expr)))
@@ -215,15 +215,16 @@
 
 
 ;; this function needs some serious thoughts
-(defun litex-latex-maybe-enclose (form)
-  "Encloses FORM in parantheis if LITEX-LATEX-MAYBE-ENCLOSE? is true."
+(defun litex-latex-maybe-enclose (form &optional parent-func)
+  "Encloses FORM which is argument of PARENT-FUNC in parantheis if LITEX-LATEX-ALWAYS-ENCLOSE? is true or if it determines it's necessary."
   (let* ((latex (litex-lisp2latex-all form)))
-    (if (and 
-	 ;; litex-latex-maybe-enclose?
-	 (consp form)
-	 (not (and (functionp (car form))
-		   (litex-latex-enclose-check-function (car form)))))
-        (format "%s %s %s"
+    (if (or litex-latex-always-enclose?
+	    (and
+	     (consp form)
+	     (litex-latex-enclose-check-args (cdr form))
+	     (and parent-func
+		  (litex-latex-enclose-check-function parent-func))))
+        (format " %s %s %s "
 		litex-math-brackets-start
 		latex
 		litex-math-brackets-end)
@@ -232,18 +233,18 @@
 
 (defun litex-latex-enclose-check-args (args)
   "Check if we need to use parantheis based on ARGS."
-  (if (not (listp args))
-      nil
-    (or
-     (> (length args) 1)
-     (cl-some #'listp args))))
+  (and (listp args)
+       (or (> (length args) 1)
+	   (listp (car args)))))
 
 
 (defun litex-latex-enclose-check-function (func)
-  "Check if we need to use parantheis for args based on FUNC."
-  (if (member func '(+ - * / 1+ 1-))
-      litex-latex-maybe-enclose?
-    (if (member func '(expt))
+  "Check if we need to use parantheis for args based on FUNC.
+
+Return true if that function may need its argument to be in brackets if they are multiple arguments."
+  (if (member func '(+ 1+ 1- expt / defun setq))
+      nil
+    (if (member func '(- *))
 	t
       nil)))
 
@@ -252,8 +253,7 @@
 ;; each one corresponds to the function at the end with args as arguments.
 (defun litex-format-args-+ (args)
   "Formatting function for + operator called with ARGS."
-  (let ((litex-latex-maybe-enclose? t))
-    (mapconcat #'litex-latex-maybe-enclose args " + ")))
+    (mapconcat #'litex-latex-maybe-enclose args " + "))
 
 
 (defun litex-format-args-- (args)
@@ -262,48 +262,45 @@
 	(arg-rest (cdr args)))
     (if arg-rest
         (format "%s - %s" (litex-latex-maybe-enclose arg1)
-                (mapconcat #'litex-latex-maybe-enclose arg-rest " - "))
-      (format "-%s" (litex-latex-maybe-enclose arg1)))))
+                (mapconcat (lambda (a)
+			     (litex-latex-maybe-enclose a '-))
+			   arg-rest " - "))
+      (format "-%s" (litex-latex-maybe-enclose arg1 '-)))))
 
 
 (defun litex-format-args-* (args)
   "Formatting function for * operator called with ARGS."
   (with-output-to-string
     (cl-loop for (me next . rest) on args do
-	     (let* ((litex-latex-maybe-enclose?
-		     (or (> (length args) 1)
-			 (litex-latex-enclose-check-args me))))
-
-	       (princ (format "%s"
-			      (litex-latex-maybe-enclose me)))
-	       (if (and next
-			(or (and (symbolp me)
-				 (> (length (prin1-to-string me)) 1))
-			    (and (symbolp next)
-				 (> (length (prin1-to-string next)) 1))
-			    (numberp next)))
-                   (princ " \\times "))))))
+	     (princ (format "%s"
+			    (litex-latex-maybe-enclose me '*)))
+	     (if (and next
+		      (or (and (symbolp me)
+			       (> (length (prin1-to-string me)) 1))
+			  (and (symbolp next)
+			       (> (length (prin1-to-string next)) 1))
+			  (numberp next)))
+                 (princ " \\times ")))))
 
 (defun litex-format-args-/ (args)
   "Formatting function for / operator called with ARGS."
   (let ((arg1 (car args))
-	(arg-rest (cdr args))
-	(litex-latex-maybe-enclose? nil))
+	(arg-rest (cdr args)))
     (if arg-rest
 	(format "\\frac{%s}{%s}"
-		(litex-latex-maybe-enclose arg1)
-		(litex-latex-maybe-enclose (cons '* arg-rest)))
-      (format "\\frac1{%s}" (litex-latex-maybe-enclose arg1)))))
+		(litex-latex-maybe-enclose arg1 '/)
+		(litex-latex-maybe-enclose (cons '* arg-rest) '/))
+      (format "\\frac1{%s}" (litex-latex-maybe-enclose arg1 '/)))))
 
 
 (defun litex-format-args-1+ (args)
   "Formatting function for 1+ called with ARGS operator."
-  (concat (litex-latex-maybe-enclose (car args)) " + 1"))
+  (concat (litex-latex-maybe-enclose (car args) '1+) " + 1"))
 
 
 (defun litex-format-args-1- (args)
   "Formatting function for 1- called with ARGS operator."
-  (concat (litex-latex-maybe-enclose (car args)) " - 1"))
+  (concat (litex-latex-maybe-enclose (car args) '1-) " - 1"))
 
 
 (defun litex-format-args-expt (args)
@@ -313,17 +310,17 @@
     (if (listp base)
 	(format "%s %s %s^{%s}"
 		litex-math-brackets-start
-		(litex-latex-maybe-enclose base)
+		(litex-latex-maybe-enclose base 'expt)
 		litex-math-brackets-end
-		(litex-latex-maybe-enclose power))
+		(litex-latex-maybe-enclose power 'expt))
       (format "%s^{%s}"
-	      (litex-latex-maybe-enclose base)
-	      (litex-latex-maybe-enclose power)))))
+	      (litex-latex-maybe-enclose base 'expt)
+	      (litex-latex-maybe-enclose power 'expt)))))
 
 
 (defun litex-format-args-sqrt (args)
   "Formatting function for sqrt function called with ARGS."
-  (format "\\sqrt{%s}" (litex-latex-maybe-enclose (car args))))
+  (format "\\sqrt{%s}" (litex-latex-maybe-enclose (car args) 'sqrt)))
 
 
 (defun litex-format-args-setq (args)
@@ -331,8 +328,8 @@
   (with-output-to-string
     (cl-loop for (a b . rest) on args by #'cddr do
 	     (princ (format "%s = %s"
-			    (litex-latex-maybe-enclose a)
-			    (litex-latex-maybe-enclose b)))
+			    (litex-latex-maybe-enclose a 'setq)
+			    (litex-latex-maybe-enclose b 'setq)))
 	     (when rest (princ "; ")))))
 
 
@@ -345,10 +342,10 @@
   (let ((func-name (car args))
 	(fargs (cadr args))
 	(expr (caddr args)))
-    (format "\\mathrm{%s}(%s):%s"
+    (format "\\text{%s}(%s) = %s"
 	    (litex-format-variable func-name)
 	    (mapconcat #'prin1-to-string fargs ",")
-	    (litex-latex-maybe-enclose expr))))
+	    (litex-latex-maybe-enclose expr 'defun))))
 
 
 (defun litex-format-args-default (func args)
@@ -359,14 +356,11 @@ available for FUNC passing ARGS as argument, else make a general
 format."
   (let ((func-symbol (intern (format "litex-format-args-%s" func))))
     (if (functionp func-symbol)
-	(let ((litex-latex-maybe-enclose?
-	       (and (litex-latex-enclose-check-args args)
-		    (litex-latex-enclose-check-function func))))
-	  (apply func-symbol (list args)))
+	(apply func-symbol (list args))
       (let* ((known? (cl-find func litex-latex-functions))
              (enclose? (or (not known?)
                            (litex-latex-enclose-check-args args)))
-             (format-string (concat (if known? "\\%s" "\\mathrm{%s}")
+             (format-string (concat (if known? "\\%s" "\\text{%s}")
                                     (if enclose?
 					(concat litex-math-brackets-start
 						"%s"
@@ -379,7 +373,7 @@ format."
 (defun litex-lisp2latex-all (form)
   "Convert given Lisp expression FORM to latex equivalent string."
   (pcase form
-    
+
     ;; functions
     (`(,func . ,args) (litex-format-args-default func args))
 

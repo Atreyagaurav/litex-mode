@@ -254,7 +254,7 @@ y &=& 2 + 3 + 6 x \\
 |---------------------------------------+------------------------+-----------------------------------------------------------------------------------------|
 | litex-latex-functions                 | '(sin cos tan)         | Lisp functions that have their own latex commands.                                      |
 | litex-make-hyphenated-to-subscript    | t                      | Whether to make the hyphenated variables subscript or not.                              |
-| litex-latex-maybe-enclose?            | nil                    | Enclose latex converted to paran if needed.                                             |
+| litex-latex-always-enclose?           | nil                    | Enclose latex converted to paran all the time.                                 |
 | litex-format-float-string             | "%.3f"                 | Format string to be used by floats.                                                     |
 | litex-format-float-upper-limit        | 1e4                    | Upper limit of what number is formatted as float.                                       |
 | litex-format-float-lower-limit        | 1e-2                   | Lower limit of what number is formatted as float.                                       |
