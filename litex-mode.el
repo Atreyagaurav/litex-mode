@@ -6,7 +6,7 @@
 ;; URL: https://github.com/Atreyagaurav/litex-mode
 ;; Version: 0.1
 ;; Keywords: calculator, lisp, LaTeX
-;; Package-Requires: ((cl-lib "0.5") (emacs "24.4"))
+;; Package-Requires: ((emacs "24.4"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -46,7 +46,7 @@
 	sin tanh)
   "Lisp functions that have their own latex commands.")
 (defvar litex-make-unicode-to-latex nil
-  "Whether to convert unicode to LaTeX equivalent (eg. α -> \alpha). These work better in math mode.")
+  "Whether to convert unicode to LaTeX equivalent (eg. α -> \alpha).  These work better in math mode.")
 (defvar litex-make-name-to-latex-glyph nil
   "Whether to convert variables with the same name as a glyph to a LaTeX glyph (eg. alpha -> \alpha).")
 (defvar litex-make-hyphenated-to-subscript t
@@ -105,7 +105,7 @@
   "Value of `litex-steps-end-string' to be used in align environment.")
 
 (defvar litex-use-slime-for-eval nil
-  "Whether to use slime process for evalulation or not. You need to start slime yourself.")
+  "Whether to use slime process for evalulation or not.  You need to start slime yourself.")
 
 
 (defvar litex-greek-unicode-latex-alist
@@ -170,7 +170,7 @@
 
 
 (defun litex-eval (expr)
-  "Eval funcion used by LiTeX, evals the EXPR in elisp or slime."
+  "Eval funcion used by LiTeX, evaluate the EXPR in elisp or slime."
   (if litex-use-slime-for-eval
       (org-babel-execute:lisp (prin1-to-string expr) '())
     (eval expr)))
@@ -235,7 +235,7 @@
 (defun litex-latex-maybe-enclose (form)
   "Encloses FORM in parantheis if LITEX-LATEX-MAYBE-ENCLOSE? is true."
   (let* ((latex (litex-lisp2latex-all form)))
-    (if (and 
+    (if (and
 	 ;; litex-latex-maybe-enclose?
 	 (consp form)
 	 (not (and (functionp (car form))
@@ -450,7 +450,7 @@ format."
 
 
 (defun litex-substitute-values (expression &optional nosub)
-  "Gives a string from EXPRESSION substituting the values."
+  "Gives a string from EXPRESSION substituting the values if NOSUB don't put | around the name."
   (let ((expr (if nosub
 		   expression
 		 (read (format "|%s|"
