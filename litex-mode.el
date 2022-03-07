@@ -6,7 +6,7 @@
 ;; URL: https://github.com/Atreyagaurav/litex-mode
 ;; Version: 0.1
 ;; Keywords: calculator, lisp, LaTeX
-;; Package-Requires: ((cl-lib "0.5") (emacs "24.1"))
+;; Package-Requires: ((cl-lib "0.5") (emacs "24.4"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -153,6 +153,11 @@
   "Alist of greek unicode symbols and their LaTeX counterparts.")
 
 
+(defmacro litex-var (var value &optional unit)
+  "Macro to define VAR varible with VALUE for calculation, with UNIT for formatting."
+  ;; TODO: use some modifications to set the variable so that there is no conflict with emacs variables.
+  (set var (eval value)))
+
 
 (defun litex-eval (expr)
   "Eval funcion used by LiTeX, evals the EXPR in elisp or slime."
@@ -284,6 +289,7 @@
 			    (numberp next)))
                    (princ " \\times "))))))
 
+
 (defun litex-format-args-/ (args)
   "Formatting function for / operator called with ARGS."
   (let ((arg1 (car args))
@@ -334,6 +340,16 @@
 			    (litex-latex-maybe-enclose a)
 			    (litex-latex-maybe-enclose b)))
 	     (when rest (princ "; ")))))
+
+
+(defun litex-format-args-litex-var (args)
+  "Formatting function for setq function called with ARGS."
+  (format "%s = %s \\:\\text{%s}"
+	  (litex-format-variable (car args))
+	  (litex-lisp2latex-all (cadr args))
+	  ;; remove "" from the unit argument.
+	  (string-trim (litex-format-variable
+			(caddr args)) "\"" "\"")))
 
 
 (setf (symbol-function 'litex-format-args-local-setq)
