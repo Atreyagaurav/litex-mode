@@ -374,18 +374,22 @@
 	(factor (cadr args))
 	(from (caddr args))
 	(to (cadddr args)))
-  (concat
-   (litex-latex-maybe-enclose value)
-   from
-   " \\times "
-   (litex-latex-maybe-enclose factor)
-   ;; remove "" from the unit argument.
-   (if to
-       (format "\\frac{%s}{%s}"
-	       (string-trim (litex-format-variable
-			     to) "\"" "\"")
-	       (string-trim (litex-format-variable
-			     from) "\"" "\""))))))
+    (if (consp value)
+	(format "%s \\:%s"
+		(litex-latex-maybe-enclose value)
+		from)
+      (concat
+       (litex-latex-maybe-enclose value)
+       from
+       " \\times "
+       (litex-latex-maybe-enclose factor)
+       ;; remove "" from the unit argument.
+       (if to
+	   (format "\\frac{%s}{%s}"
+		   (string-trim (litex-format-variable
+				 to) "\"" "\"")
+		   (string-trim (litex-format-variable
+				 from) "\"" "\"")))))))
 
 
 (defun litex-format-args-defun (args)
@@ -474,7 +478,8 @@ format."
 (defun litex-solve-single-step (form)
   "Solves a single step of calculation in FORM."
   (cond ((listp form)
-         (if (cl-every #'numberp (cl-rest form))
+         (if (cl-every (lambda (a) (or (numberp a)
+				  (stringp a))) (cl-rest form))
              (litex-eval form)
            (cons (cl-first form)
 		 (mapcar #'litex-solve-single-step (cl-rest form)))))
