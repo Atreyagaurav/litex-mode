@@ -6,7 +6,7 @@
 ;; URL: https://github.com/Atreyagaurav/litex-mode
 ;; Version: 0.1
 ;; Keywords: calculator, lisp, LaTeX
-;; Package-Requires: ((cl-lib "0.5") (emacs "24.1"))
+;; Package-Requires: ((emacs "24.4"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -153,6 +153,21 @@
   "Alist of greek unicode symbols and their LaTeX counterparts.")
 
 
+(defmacro litex-var (var value &optional unit)
+  "Macro to define VAR varible with VALUE for calculation, with UNIT for formatting."
+  (declare (ignore unit)) 		;only used for formatting
+  (set (read (concat "|"
+		     (prin1-to-string var)
+		     "|")) (litex-eval value)))
+
+
+(defmacro litex-convert (value factor &optional from-unit to-unit)
+  "Macro used for converting VALUE from FROM-UNIT to TO-UNIT with FACTOR."
+  (declare (ignore from-unit))
+  (declare (ignore to-unit))
+  (* (litex-eval factor)
+     (litex-eval value)))
+
 
 (defun litex-eval (expr)
   "Eval funcion used by LiTeX, evaluate the EXPR in elisp or slime."
@@ -206,7 +221,9 @@
   (let ((var-strs (mapcar
 		   (lambda (s) (mapconcat #'litex-format-greek-characters
 				     (split-string s "/") ""))
-		   (split-string (prin1-to-string var t) "-"))))
+		   (split-string (string-trim
+				  (prin1-to-string var t)
+				  "|" "|") "-"))))
 
     (let ((var-final (car var-strs)))
       (if (> (length var-strs) 1)
@@ -283,6 +300,7 @@ Return true if that function may need its argument to be in brackets if they are
 			  (numberp next)))
                  (princ " \\times ")))))
 
+
 (defun litex-format-args-/ (args)
   "Formatting function for / operator called with ARGS."
   (let ((arg1 (car args))
@@ -336,6 +354,40 @@ Return true if that function may need its argument to be in brackets if they are
 
 (setf (symbol-function 'litex-format-args-local-setq)
       #'litex-format-args-setq)
+
+
+(defun litex-format-args-litex-var (args)
+  "Formatting function for setq function called with ARGS."
+  (format "%s = %s \\:\\text{%s}"
+	  (litex-format-variable (car args))
+	  (litex-lisp2latex-all (cadr args))
+	  ;; remove "" from the unit argument.
+	  (string-trim (litex-format-variable
+			(caddr args)) "\"" "\"")))
+
+
+(defun litex-format-args-litex-convert (args)
+  "Formatting function for setq function called with ARGS."
+  (let ((value (car args))
+	(factor (cadr args))
+	(from (caddr args))
+	(to (cadddr args)))
+    (if (consp value)
+	(format "%s \\:%s"
+		(litex-latex-maybe-enclose value)
+		from)
+      (concat
+       (litex-latex-maybe-enclose value)
+       from
+       " \\times "
+       (litex-latex-maybe-enclose factor)
+       ;; remove "" from the unit argument.
+       (if to
+	   (format "\\frac{%s}{%s}"
+		   (string-trim (litex-format-variable
+				 to) "\"" "\"")
+		   (string-trim (litex-format-variable
+				 from) "\"" "\"")))))))
 
 
 (defun litex-format-args-defun (args)
@@ -396,25 +448,33 @@ format."
 	nil))))
 
 
-(defun litex-substitute-values (expression)
-  "Gives a string from EXPRESSION substituting the values."
+(defun litex-substitute-values (expression &optional nosub)
+  "Gives a string from EXPRESSION substituting the values if NOSUB don't put | around the name."
+  (let ((expr (if nosub
+		   expression
+		 (read (format "|%s|"
+			       (prin1-to-string expression))))))
   (condition-case nil
-   (if (functionp expression)
-      (format "%s" expression)
-    (if (symbolp expression)
-	(format "%s" (litex-eval expression))
-      (if (consp expression)
+   (if (functionp expr)
+      (format "%s" expr)
+    (if (symbolp expr)
+	(format "%s" (litex-eval expr))
+      (if (consp expr)
 	  (format "(%s)"
-		  (mapconcat #'litex-substitute-values expression " "))
-	(prin1-to-string expression))))
+		  (mapconcat #'litex-substitute-values expr " "))
+	(prin1-to-string expr))))
    ;; this will catch error for undefined variables.
-   (void-variable (prin1-to-string expression))))
+   (void-variable (let ((expr2 (prin1-to-string expression)))
+		    (if nosub
+			expr2
+		      (litex-substitute-values expression t)))))))
 
 
 (defun litex-solve-single-step (form)
   "Solves a single step of calculation in FORM."
   (cond ((listp form)
-         (if (cl-every #'numberp (cl-rest form))
+         (if (cl-every (lambda (a) (or (numberp a)
+				  (stringp a))) (cl-rest form))
              (litex-eval form)
            (cons (cl-first form)
 		 (mapcar #'litex-solve-single-step (cl-rest form)))))
@@ -451,7 +511,7 @@ format."
 (defun litex-sexp-to-solved-string (expression format-func)
   "Return solved string of EXPRESSION using FORMAT-FUNC to format all steps."
   (pcase expression
-    (`(setq ,var ,exp)
+    (`(,(or 'setq 'litex-var 'setq-local) ,var ,exp)
      (concat
       (format "%s%s"
 	      (litex-format-variable var)
