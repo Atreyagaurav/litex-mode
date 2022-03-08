@@ -163,14 +163,15 @@
 ;; Formatting functions
 (defun litex-format-float (val)
   "Function that defines how float VAL is formatted in lisp2latex."
-  (if (or (< val litex-format-float-lower-limit)
-	  (> val litex-format-float-upper-limit))
-      (let* ((exponent (floor (log val 10)))
+  (let ((sign (if (< val 0) -1 1)))
+  (if (or (< (* sign val) litex-format-float-lower-limit)
+	  (> (* sign val) litex-format-float-upper-limit))
+      (let* ((exponent (floor (log (* sign val) 10)))
              (front (/ val (expt 10 exponent))))
         (format (concat litex-format-float-string
 			" \\times 10^{%d}")
 		front exponent))
-    (format litex-format-float-string val)))
+    (format litex-format-float-string val))))
 
 
 (defun litex-read-sexp-maybe-kill ()
