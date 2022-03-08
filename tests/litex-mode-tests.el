@@ -98,6 +98,22 @@
     (should (string= (litex-format-args-expt '((* 2 x) 2))
 		     "\\left( 2x \\right)^{2}")))
 
+(ert-deftest litex-format-args-litex-convert-test ()
+  (should (string= (litex-format-args-litex-convert
+		    '(-3 "m³" 0.3 "ft³"))
+		   "-3 \\:m³ \\times 0.30\\frac{ft³}{m³}"))
+  (should (string= (litex-format-args-litex-convert
+		    '(-3 "m³" (/ 0.3)))
+		   "-3 \\:m³ \\times \\frac1{0.30}"))
+  (should (string= (litex-format-args-litex-convert
+		    '(-3 "m³" (/ 0.3) "ft³"))
+		   "-3 \\:m³ \\times \\frac1{0.30}\\frac{ft³}{m³}"))
+  (should (string= (litex-format-args-litex-convert
+		    '(-3 "m³")) "-3 \\:m³"))
+  (should (string= (litex-format-args-litex-convert
+		    '((- 3) "m³" (/ 0.3) "ft³"))
+		   "-3 \\:m³")))
+
 
 (ert-deftest litex-lisp2latex-all-test ()
   (should (string= (litex-lisp2latex-all
@@ -127,7 +143,3 @@
 		    '(fun x 2 (/ 5 (+ 6 7) x)))
 		   "\\text{fun}\\left(x,2,\\frac{5}{ \\left( 6 + 7 \\right) x}\\right)")))
 
-(litex-format-args-* '((+ 2 3) 1))
-
-(setq litex-latex-maybe-enclose? t)
-(litex-latex-enclose-check-function '+)

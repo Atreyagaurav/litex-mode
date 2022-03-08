@@ -161,12 +161,13 @@
 		     "|")) (litex-eval value)))
 
 
-(defmacro litex-convert (value factor &optional from-unit to-unit)
+(defmacro litex-convert (value &optional from-unit factor to-unit)
   "Macro used for converting VALUE from FROM-UNIT to TO-UNIT with FACTOR."
   (declare (ignore from-unit))
   (declare (ignore to-unit))
+  (let ((factor (or factor 1.0)))
   (* (litex-eval factor)
-     (litex-eval value)))
+     (litex-eval value))))
 
 
 (defun litex-eval (expr)
@@ -385,15 +386,16 @@ Return true if that function may need its argument to be in brackets if they are
 (defun litex-format-args-litex-convert (args)
   "Formatting function for setq function called with ARGS."
   (let ((value (car args))
-	(factor (cadr args))
-	(from (caddr args))
+	(from (cadr args))
+	(factor (caddr args))
 	(to (cadddr args)))
-    (if (consp value)
+    (if (or (consp value) (not factor))
 	(format "%s \\:%s"
 		(litex-latex-maybe-enclose value)
 		from)
-      (concat
+	  (concat
        (litex-latex-maybe-enclose value)
+       (if from " \\:")
        from
        " \\times "
        (litex-latex-maybe-enclose factor)
