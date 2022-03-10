@@ -562,6 +562,17 @@ format."
 			  litex-steps-join-string)))))
 
 
+(defun litex-eval-last-sexp ()
+  "Evaluate the preceding sexp."
+  (interactive)
+  (backward-kill-sexp)
+  (let ((expr (read (current-kill 0))))
+    (prin1 expr (current-buffer))
+    (condition-case nil
+	(message (prin1-to-string (litex-eval expr)))
+      (error (message "Invalid expression")))))
+
+
 (defun litex-eval-and-replace ()
   "Replace the preceding sexp with its value."
   (interactive)
@@ -743,6 +754,7 @@ Argument END end position of region."
     (define-key keymap (kbd "f") 'litex-format-region-last)
     (define-key keymap (kbd "E") 'litex-eval-and-replace)
     (define-key keymap (kbd "e") 'litex-eval-and-insert)
+    (define-key keymap (kbd "C-e") 'litex-eval-last-sexp)
     (define-key keymap (kbd "s") 'litex-sexp-to-latex-exp)
     (define-key keymap (kbd "S") 'litex-sexp-solve-all-steps)
     (define-key keymap (kbd "r") 'litex-sexp-replace-variables)
