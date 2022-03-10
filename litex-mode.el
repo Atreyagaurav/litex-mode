@@ -566,23 +566,25 @@ format."
   "Replace the preceding sexp with its value."
   (interactive)
   (backward-kill-sexp)
+  (let ((expr (read (current-kill 0))))
   (condition-case nil
-      (prin1 (litex-eval (read (current-kill 0)))
+      (prin1 (litex-eval exp)
              (current-buffer))
     (error (message "Invalid expression")
-           (insert (current-kill 0)))))
+           (insert (prin1-to-string expr))))))
 
 
 (defun litex-eval-and-insert ()
   "Insert the evaulation result of the preceding sexp."
   (interactive)
   (backward-kill-sexp)
-  (condition-case nil
-      (insert (current-kill 0)
-	      litex-steps-join-string
-	      (format "%s"
-		      (litex-eval (read (current-kill 0)))))
-    (error (message "Invalid expression"))))
+  (let ((expr (read (current-kill 0))))
+    (insert (prin1-to-string expr))
+    (condition-case nil
+	(insert litex-steps-join-string
+		(format "%s"
+			(litex-eval expr)))
+      (error (message "Invalid expression")))))
 
 
 (defun litex-exp-to-latex (beg end)
