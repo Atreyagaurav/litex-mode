@@ -153,6 +153,23 @@
   "Alist of greek unicode symbols and their LaTeX counterparts.")
 
 
+(defmacro litex-var (var value &optional unit)
+  "Macro to define VAR varible with VALUE for calculation, with UNIT for formatting."
+  (declare (ignore unit)) 		;only used for formatting
+  (set (read (concat "|"
+		     (prin1-to-string var)
+		     "|")) (litex-eval
+			    (read (litex-substitute-values value)))))
+
+
+(defmacro litex-convert (value &optional from-unit factor to-unit)
+  "Macro used for converting VALUE from FROM-UNIT to TO-UNIT with FACTOR."
+  (declare (ignore from-unit))
+  (declare (ignore to-unit))
+  (let ((factor (or factor 1.0)))
+  (* (litex-eval (read (litex-substitute-values factor)))
+     (litex-eval (read (litex-substitute-values value))))))
+
 
 (defun litex-eval (expr)
   "Eval funcion used by LiTeX, evals the EXPR in elisp or slime."
