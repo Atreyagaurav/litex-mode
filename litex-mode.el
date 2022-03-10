@@ -158,7 +158,8 @@
   (declare (ignore unit)) 		;only used for formatting
   (set (read (concat "|"
 		     (prin1-to-string var)
-		     "|")) (litex-eval value)))
+		     "|")) (litex-eval
+			    (read (litex-substitute-values value)))))
 
 
 (defmacro litex-convert (value &optional from-unit factor to-unit)
@@ -166,8 +167,8 @@
   (declare (ignore from-unit))
   (declare (ignore to-unit))
   (let ((factor (or factor 1.0)))
-  (* (litex-eval factor)
-     (litex-eval value))))
+  (* (litex-eval (read (litex-substitute-values factor)))
+     (litex-eval (read (litex-substitute-values value))))))
 
 
 (defun litex-eval (expr)
