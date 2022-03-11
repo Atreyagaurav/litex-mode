@@ -4,7 +4,16 @@
 # to .github/workflows/melpazoid.yml and modifying RECIPE and EXIST_OK below.
 
 name: melpazoid
-on: [push, pull_request]
+name: ert
+on:
+  push:
+    branches:
+      - dev
+      - main
+  pull_request:
+    branches:
+      - dev
+      - main
 
 jobs:
   build:
