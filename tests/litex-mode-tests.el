@@ -99,6 +99,9 @@
 		     "\\left( 2x \\right)^{2}")))
 
 (ert-deftest litex-format-args-litex-convert-test ()
+  (let ((litex-format-float-string "%.2f")
+	(litex-format-float-upper-limit 1e4)
+	(litex-format-float-lower-limit 1e-2))
   (should (string= (litex-format-args-litex-convert
 		    '(-3 "m³" 0.3 "ft³"))
 		   "-3 \\:m³ \\times 0.30\\frac{ft³}{m³}"))
@@ -112,7 +115,7 @@
 		    '(-3 "m³")) "-3 \\:m³"))
   (should (string= (litex-format-args-litex-convert
 		    '((- 3) "m³" (/ 0.3) "ft³"))
-		   "-3 \\:m³")))
+		   "-3 \\:m³"))))
 
 
 (ert-deftest litex-lisp2latex-all-test ()
