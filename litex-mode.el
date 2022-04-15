@@ -161,16 +161,22 @@
     (eval expr)))
 
 ;; Formatting functions
+(defun litex-format-float-not-within-limits (val)
+  (let ((sign (if (< val 0) -1 1)))
+    (or (< (* sign val) litex-format-float-lower-limit)
+	  (> (* sign val) litex-format-float-upper-limit))))
+
+
 (defun litex-format-float (val)
   "Function that defines how float VAL is formatted in lisp2latex."
-  (if (or (< val litex-format-float-lower-limit)
-	  (> val litex-format-float-upper-limit))
-      (let* ((exponent (floor (log val 10)))
+  (let ((sign (if (< val 0) -1 1)))
+  (if (litex-format-float-not-within-limits val)
+      (let* ((exponent (floor (log (* sign val) 10)))
              (front (/ val (expt 10 exponent))))
         (format (concat litex-format-float-string
 			" \\times 10^{%d}")
 		front exponent))
-    (format litex-format-float-string val)))
+    (format litex-format-float-string val))))
 
 
 (defun litex-read-sexp-maybe-kill ()
@@ -307,7 +313,10 @@ Return true if that function may need its argument to be in brackets if they are
   "Formatting function for expt function called with ARGS."
   (let ((base (car args))
 	(power (cadr args)))
-    (if (listp base)
+    (if (or (listp base)
+	    ;; for cases where the base will be using × 10^{} format.
+	    (and (numberp base)
+		 (litex-format-float-not-within-limits base)))
 	(format "%s %s %s^{%s}"
 		litex-math-brackets-start
 		(litex-latex-maybe-enclose base 'expt)

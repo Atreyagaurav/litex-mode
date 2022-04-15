@@ -126,8 +126,3 @@
   (should (string= (litex-lisp2latex-all
 		    '(fun x 2 (/ 5 (+ 6 7) x)))
 		   "\\text{fun}\\left(x,2,\\frac{5}{ \\left( 6 + 7 \\right) x}\\right)")))
-
-(litex-format-args-* '((+ 2 3) 1))
-
-(setq litex-latex-maybe-enclose? t)
-(litex-latex-enclose-check-function '+)
