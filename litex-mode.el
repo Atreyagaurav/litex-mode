@@ -62,6 +62,8 @@
   "Upper limit of what number is formatted as float.")
 (defvar litex-format-float-lower-limit 1e-2
   "Lower limit of what number is formatted as float.")
+(defvar litex-format-float-trim-decimal nil
+  "Trim zeros after decimal if all decimals are zeros.")
 
 (defvar litex-steps-join-string "= "
   "String used for joining strings in steps of a solution.")
@@ -153,11 +155,29 @@
   "Alist of greek unicode symbols and their LaTeX counterparts.")
 
 
+(defun litex-varible-is-ratio (var)
+  "To check if the slime output of ratio type was mistaken as symbol in elisp."
+  (if (string-match-p "[0-9]+/[0-9]+" (prin1-to-string var)) t nil))
+
+(defun litex-format-slime-output (output)
+  "Format the output of slime to litex form."
+  (pcase (type-of output)
+    ('symbol (if (litex-varible-is-ratio output)
+		 (let ((parts (split-string (prin1-to-string output) "/"))
+		       (litex-format-float-trim-decimal t))
+		   (format "\\frac{%s}{%s}"
+			   (litex-format-float (read (car parts)))
+			   (litex-format-float (read (cadr parts)))))
+	       (litex-format-variable output)))
+    ('float (litex-format-float output))
+    (t (prin1-to-string output)))
+  )
 
 (defun litex-eval (expr)
   "Eval funcion used by LiTeX, evaluate the EXPR in elisp or slime."
   (if litex-use-slime-for-eval
-      (org-babel-execute:lisp (prin1-to-string expr) '())
+      (litex-format-slime-output
+       (org-babel-execute:lisp (prin1-to-string expr) '()))
     (eval expr)))
 
 ;; Formatting functions
@@ -167,16 +187,18 @@
 	  (> (* sign val) litex-format-float-upper-limit))))
 
 
-(defun litex-format-float (val)
+(defun litex-format-float (val &optional nolim)
   "Function that defines how float VAL is formatted in lisp2latex."
   (let ((sign (if (< val 0) -1 1)))
-  (if (litex-format-float-not-within-limits val)
+  (if (and (not nolim) (litex-format-float-not-within-limits val))
       (let* ((exponent (floor (log (* sign val) 10)))
              (front (/ val (expt 10 exponent))))
-        (format (concat litex-format-float-string
-			" \\times 10^{%d}")
-		front exponent))
-    (format litex-format-float-string val))))
+        (concat (litex-format-float front t)
+			" \\times 10^{" (number-to-string exponent) "}"))
+    (let ((formatted (format litex-format-float-string val)))
+      (if litex-format-float-trim-decimal
+	  (string-trim-right formatted "[.]0+")
+	formatted)))))
 
 
 (defun litex-read-sexp-maybe-kill ()
