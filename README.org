@@ -172,6 +172,11 @@ Like: ~(setq alpha 2)~ ⇒ ~{\alpha} = 2~
 (setq litex-make-name-to-latex-glyph t)
     #+end_src
 
+    When you have more than one letters, in this use case you have to separate them with ~.~, for example:
+     ~(setq Delta.alpha 2)~ ⇒ ~{\Delta}{\alpha} = 2~
+
+This is so that the letters inside other words won't be converted automatically. As you can see ~.~ is only used for initial separation of words so you can use it to make the bounds where you want greek letters:
+     ~(setq Delta./.alpha 2)~ ⇒ ~{\Delta}/{\alpha} = 2~
 
 * Explanation for functions
 
@@ -254,10 +259,11 @@ y &=& 2 + 3 + 6 x \\
 |---------------------------------------+------------------------+-----------------------------------------------------------------------------------------|
 | litex-latex-functions                 | '(sin cos tan)         | Lisp functions that have their own latex commands.                                      |
 | litex-make-hyphenated-to-subscript    | t                      | Whether to make the hyphenated variables subscript or not.                              |
-| litex-latex-always-enclose?           | nil                    | Enclose latex converted to paran all the time.                                 |
+| litex-latex-always-enclose?           | nil                    | Enclose latex converted to paran all the time.                                          |
 | litex-format-float-string             | "%.3f"                 | Format string to be used by floats.                                                     |
 | litex-format-float-upper-limit        | 1e4                    | Upper limit of what number is formatted as float.                                       |
 | litex-format-float-lower-limit        | 1e-2                   | Lower limit of what number is formatted as float.                                       |
+| litex-format-float-trim-decimal       | nil                    | Trim zeros after decimal if all decimals are zeros.                                     |
 | litex-steps-join-string               | "= "                   | String used for joining strings in steps of a solution.                                 |
 | litex-steps-end-string                | " "                    | String used at the end of each strings in steps of a solution.                          |
 | litex-math-inline-start               | "\\("                  | Opening syntax for math inline environment.                                             |
