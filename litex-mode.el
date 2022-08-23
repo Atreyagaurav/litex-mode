@@ -6,7 +6,7 @@
 ;; URL: https://github.com/Atreyagaurav/litex-mode
 ;; Version: 0.1
 ;; Keywords: calculator, lisp, LaTeX
-;; Package-Requires: ((cl-lib "0.5") (emacs "24.1"))
+;; Package-Requires: ((emacs "24.4"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -46,9 +46,11 @@
 	sin tanh)
   "Lisp functions that have their own latex commands.")
 (defvar litex-make-unicode-to-latex nil
-  "Whether to convert unicode to LaTeX equivalent (eg. α -> \alpha).  These work better in math mode.")
+  "Whether to convert unicode to LaTeX equivalent (eg.  α -> \alpha).
+ These work better in math mode.")
 (defvar litex-make-name-to-latex-glyph nil
-  "Whether to convert variables with the same name as a glyph to a LaTeX glyph (eg. alpha -> \alpha).")
+  "Convert variables with the same name as a glyph to a LaTeX glyph.
+(eg.  alpha -> \alpha).")
 (defvar litex-make-hyphenated-to-subscript t
   "Whether to make the hyphenated variables subscript or not.")
 (defvar litex-latex-always-enclose? nil
@@ -62,6 +64,8 @@
   "Upper limit of what number is formatted as float.")
 (defvar litex-format-float-lower-limit 1e-2
   "Lower limit of what number is formatted as float.")
+(defvar litex-format-float-trim-decimal nil
+  "Trim zeros after decimal if all decimals are zeros.")
 
 (defvar litex-steps-join-string "= "
   "String used for joining strings in steps of a solution.")
@@ -82,30 +86,31 @@
 (defvar litex-math-equation-end "\n\\end{equation}\n"
   "Closing syntax for math equation environment.")
 (defvar litex-math-steps-equation-join-string "= "
-  "Value of `litex-steps-join-string' to be used in equation environment.")
+  "Value of `litex-steps-join-string' used in equation environment.")
 (defvar litex-math-steps-equation-end-string " "
-  "Value of `litex-steps-end-string' to be used in equation environment.")
+  "Value of `litex-steps-end-string' used in equation environment.")
 
 (defvar litex-math-eqnarray-start "\\begin{eqnarray*}\n"
   "Opening syntax for math eqnarray environment.")
 (defvar litex-math-eqnarray-end "\n\\end{eqnarray*}\n"
   "Closing syntax for math eqnarray environment.")
 (defvar litex-math-steps-eqnarray-join-string " &=& "
-  "Value of `litex-steps-join-string' to be used in eqnarray environment.")
+  "Value of `litex-steps-join-string' used in eqnarray environment.")
 (defvar litex-math-steps-eqnarray-end-string "\\\\\n"
-  "Value of `litex-steps-end-string' to be used in eqnarray environment.")
+  "Value of `litex-steps-end-string' used in eqnarray environment.")
 
 (defvar litex-math-align-start "\\begin{align*}\n"
   "Opening syntax for math align environment.")
 (defvar litex-math-align-end "\n\\end{align*}\n"
   "Closing syntax for math align environment.")
 (defvar litex-math-steps-align-join-string "& = "
-  "Value of `litex-steps-join-string' to be used in align environment.")
+  "Value of `litex-steps-join-string' used in align environment.")
 (defvar litex-math-steps-align-end-string "\\\\\n"
-  "Value of `litex-steps-end-string' to be used in align environment.")
+  "Value of `litex-steps-end-string' used in align environment.")
 
 (defvar litex-use-slime-for-eval nil
-  "Whether to use slime process for evalulation or not.  You need to start slime yourself.")
+  "Whether to use slime process for evalulation or not.
+ You need to start slime yourself.")
 
 
 (defvar litex-greek-unicode-latex-alist
@@ -153,34 +158,58 @@
   "Alist of greek unicode symbols and their LaTeX counterparts.")
 
 
+(defun litex-varible-is-ratio (var)
+  "Check if the slime output of ratio type was mistaken as a symbol.
+Argument VAR: variable which could be from slime output."
+  (if (string-match-p "[0-9]+/[0-9]+" (prin1-to-string var)) t nil))
+
+(defun litex-format-slime-output (output)
+  "Format the OUTPUT from slime to litex form."
+  (pcase (type-of output)
+    ('symbol (if (litex-varible-is-ratio output)
+		 (let ((parts (split-string
+			       (prin1-to-string output) "/"))
+		       (litex-format-float-trim-decimal t))
+		   (format "\\frac{%s}{%s}"
+			   (litex-format-float (read (car parts)))
+			   (litex-format-float (read (cadr parts)))))
+	       (litex-format-variable output)))
+    ('float (litex-format-float output))
+    (_ (prin1-to-string output))))
 
 (defun litex-eval (expr)
   "Eval funcion used by LiTeX, evaluate the EXPR in elisp or slime."
   (if litex-use-slime-for-eval
-      (org-babel-execute:lisp (prin1-to-string expr) '())
+      (litex-format-slime-output
+       (org-babel-execute:lisp (prin1-to-string expr) '()))
     (eval expr)))
 
 ;; Formatting functions
 (defun litex-format-float-not-within-limits (val)
+  "Check is VAL is within float limits."
   (let ((sign (if (< val 0) -1 1)))
     (or (< (* sign val) litex-format-float-lower-limit)
 	  (> (* sign val) litex-format-float-upper-limit))))
 
 
-(defun litex-format-float (val)
+(defun litex-format-float (val &optional nolim)
   "Function that defines how float VAL is formatted in lisp2latex."
   (let ((sign (if (< val 0) -1 1)))
-  (if (litex-format-float-not-within-limits val)
+  (if (and (not nolim) (litex-format-float-not-within-limits val))
       (let* ((exponent (floor (log (* sign val) 10)))
              (front (/ val (expt 10 exponent))))
-        (format (concat litex-format-float-string
-			" \\times 10^{%d}")
-		front exponent))
-    (format litex-format-float-string val))))
+        (concat (litex-format-float front t)
+		" \\times 10^{"
+		(number-to-string exponent) "}"))
+    (let ((formatted (format litex-format-float-string val)))
+      (if litex-format-float-trim-decimal
+	  (string-trim-right formatted "[.]0+")
+	formatted)))))
 
 
 (defun litex-read-sexp-maybe-kill ()
-  "Read the sexp before point, kill it if `litex-keep-sexp-in-buffer' is nil."
+  "Read the sexp before point.
+Kill it if `litex-keep-sexp-in-buffer' is nil."
   (interactive)
   (let ((expr (sexp-at-point)))
     (if (not litex-keep-sexp-in-buffer)
@@ -192,7 +221,8 @@
 
 
 (defun litex-format-greek-characters (string)
-  "Format STRING to Greek LaTeX notation if it has greek unicode or character name."
+  "Format STRING to Greek LaTeX notation.
+Replace greek unicode or character name to latex notation."
   (let ((var-str string)
 	(var-assoc nil))
     (when litex-make-name-to-latex-glyph
@@ -222,7 +252,8 @@
 
 ;; this function needs some serious thoughts
 (defun litex-latex-maybe-enclose (form &optional parent-func)
-  "Encloses FORM which is argument of PARENT-FUNC in parantheis if LITEX-LATEX-ALWAYS-ENCLOSE? is true or if it determines it's necessary."
+  "Encloses FORM which is argument of PARENT-FUNC in parantheis.
+If `litex-latex-always-enclose?' is true or if it determines it's necessary."
   (let* ((latex (litex-lisp2latex-all form)))
     (if (or litex-latex-always-enclose?
 	    (and
@@ -247,7 +278,8 @@
 (defun litex-latex-enclose-check-function (func)
   "Check if we need to use parantheis for args based on FUNC.
 
-Return true if that function may need its argument to be in brackets if they are multiple arguments."
+Return true if that function may need its argument to be in brackets
+ if they are multiple arguments."
   (if (member func '(+ 1+ 1- expt / defun setq))
       nil
     (if (member func '(- *))
@@ -255,8 +287,8 @@ Return true if that function may need its argument to be in brackets if they are
       nil)))
 
 
-;; formatting functions to be called by litex-lisp2latex-all
-;; each one corresponds to the function at the end with args as arguments.
+;; formatting functions to be called by `litex-lisp2latex-all', each
+;; one corresponds to the function at the end with args as arguments.
 (defun litex-format-args-+ (args)
   "Formatting function for + operator called with ARGS."
     (mapconcat #'litex-latex-maybe-enclose args " + "))
@@ -369,12 +401,13 @@ format."
       (let* ((known? (cl-find func litex-latex-functions))
              (enclose? (or (not known?)
                            (litex-latex-enclose-check-args args)))
-             (format-string (concat (if known? "\\%s" "\\text{%s}")
-                                    (if enclose?
-					(concat litex-math-brackets-start
-						"%s"
-						litex-math-brackets-end)
-				      " %s"))))
+             (format-string
+	      (concat (if known? "\\%s" "\\text{%s}")
+                      (if enclose?
+			  (concat litex-math-brackets-start
+				  "%s"
+				  litex-math-brackets-end)
+			" %s"))))
 	(format format-string func
 		(mapconcat #'litex-latex-maybe-enclose args ","))))))
 
@@ -389,7 +422,8 @@ format."
     ;; simple variables
     (_
      (cond ((floatp form) (litex-format-float form))
-	   ((or (symbolp form) (stringp form)) (litex-format-variable form))
+	   ((or (symbolp form) (stringp form))
+	    (litex-format-variable form))
            (t (prin1-to-string form))))))
 
 
@@ -413,7 +447,8 @@ format."
 	(format "%s" (litex-eval expression))
       (if (consp expression)
 	  (format "(%s)"
-		  (mapconcat #'litex-substitute-values expression " "))
+		  (mapconcat #'litex-substitute-values
+			     expression " "))
 	(prin1-to-string expression))))
    ;; this will catch error for undefined variables.
    (void-variable (prin1-to-string expression))))
@@ -436,7 +471,8 @@ format."
 
 
 (defun litex-solve-all-steps (form)
-  "Solves all the steps of calculations in FORM expression and retuns a list of steps."
+  "Solves all the steps of calculations in FORM expression.
+Retuns a list of steps."
   (let
       ((solution (list form))) ;given expression
     (if
@@ -457,7 +493,7 @@ format."
 
 
 (defun litex-sexp-to-solved-string (expression format-func)
-  "Return solved string of EXPRESSION using FORMAT-FUNC to format all steps."
+  "Return solution of EXPRESSION using FORMAT-FUNC to format steps."
   (pcase expression
     (`(setq ,var ,exp)
      (concat
@@ -583,7 +619,8 @@ Argument END end position of region."
 
 
 (defun litex-format-region-last (beg end)
-  "Format selected region as per format of last call to `litex-format-region`,BEG and END are region bounds."
+  "Format region like last `litex-format-region` call (without query).
+BEG and END are region bounds."
   (interactive (if (use-region-p)
                    (list (region-beginning) (region-end))
                  (let ((bnd (bounds-of-thing-at-point 'sexp)))
@@ -633,7 +670,8 @@ Argument END end position of region."
 
 
 (defun litex-insert-or-replace-x (beg end)
-  "If a region (BEG to END) is selected, replace * by \times otherwise insert \times instead of ×."
+  "If a region (BEG to END) is selected, replace * by \times
+ otherwise insert \times instead of ×."
   (interactive (if (use-region-p)
                    (list (region-beginning) (region-end))
                  (list (point) (point))))
