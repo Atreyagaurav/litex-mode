@@ -36,6 +36,7 @@
 (eval-when-compile (require 'pcase))
 (require 'cl-lib)
 (require 'ob-lisp)
+(require 'units-mode)
 
 ;; list from:
 ;; https://www.overleaf.com/learn/latex/Operators#Reference_guide
@@ -240,7 +241,7 @@ Replace greek unicode or character name to latex notation."
   "Format variable VAR for LaTeX."
   (let ((var-strs (mapcar
 		   (lambda (s) (mapconcat #'litex-format-greek-characters
-				     (split-string s "[.]") ""))
+				     (split-string s ",") ""))
 		   (split-string (prin1-to-string var t) "-"))))
 
     (let ((var-final (car var-strs)))
@@ -388,6 +389,32 @@ Return true if that function may need its argument to be in brackets
 	    (mapconcat #'prin1-to-string fargs ",")
 	    (litex-latex-maybe-enclose expr 'defun))))
 
+(defun litex-format-args-units-convert-simple (args)
+    (let ((expr (car args))
+	(from-unit (cadr args))
+	(to-unit (caddr args)))
+      (format "%s \\text{%s -> %s}"
+	      (litex-latex-maybe-enclose expr 'units-convert-single)
+	      from-unit
+	      to-unit)))
+
+(defun litex-format-args-units-ignore (args)
+    (let ((expr (car args))
+	(unit (cadr args)))
+      (format "%s \\text{%s}"
+	      (litex-latex-maybe-enclose expr 'units-ignore)
+	      unit)))
+
+(defun litex-format-args-units-reduce (args)
+  (litex-latex-maybe-enclose (car args) 'units-reduce))
+
+(defun litex-format-args-units-convert (args)
+    (let ((value (car args))
+	(unit (cadr args)))
+      (format "%s \\text{(-> %s)}"
+	      (litex-latex-maybe-enclose value 'units-convert)
+	      unit)))
+
 
 (defun litex-format-args-default (func args)
   "Default Formatting function for Lisp expressions.
@@ -454,11 +481,30 @@ format."
    (void-variable (prin1-to-string expression))))
 
 
+(defun litex-units-single-step (form)
+  (pcase form
+    (`(units-convert ,value ,unit) (list 'units-ignore (litex-eval form) unit))
+    (`(units-convert-simple ,value ,from ,unit) (list 'units-ignore (litex-eval form) unit))
+    (`(units-reduce ,value) (litex-eval form))
+    (_ (error "Unknown units function."))))
+
+(defun litex-units-is-final-form (form)
+  (pcase form
+    (`(units-convert ,value ,unit) nil)
+    (`(units-convert-simple ,value ,from ,unit) nil)
+    (`(units-reduce ,value) nil)
+    (`(units-ignore ,value ,unit) t)
+    (_ nil)))
+
+
 (defun litex-solve-single-step (form)
   "Solves a single step of calculation in FORM."
   (cond ((listp form)
-         (if (cl-every #'numberp (cl-rest form))
-             (litex-eval form)
+         (if (cl-every (lambda (f) (or (numberp f)
+				  (stringp f))) (cl-rest form))
+             (if (string-match-p "^units-" (symbol-name (car form)))
+		 (litex-units-single-step form)
+	       (litex-eval form))
            (cons (cl-first form)
 		 (mapcar #'litex-solve-single-step (cl-rest form)))))
 	((functionp form)
@@ -484,7 +530,8 @@ Retuns a list of steps."
 			     (read
 			      (litex-substitute-values form)))))))
 
-    (while (consp form)
+    (while (and (consp form)
+	       (not (litex-units-is-final-form form)))
       (setq solution
 	    (append solution
 		    (list (setq form
