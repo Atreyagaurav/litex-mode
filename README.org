@@ -29,6 +29,7 @@ Not only can it convert lisp expressions to latex, it can also, give intermediat
   - [[#complete-setup-using-use-package][Complete setup using use-package]]
 - [[#known-problems][Known Problems:]]
 - [[#tips-and-tricks][Tips and Tricks]]
+  - [[#including-units][Including Units]]
   - [[#using-case-sensitive-symbols][Using case sensitive symbols]]
   - [[#slime-integration][Slime integration]]
   - [[#using-greek-letters][Using Greek letters]]
@@ -125,9 +126,49 @@ Contents of litex-key-map are below.
 * Known Problems:
    elisp uses integer calculations so ~(/ 1 2)~ is evaluated to 0, be careful of such pitfalls. For now ~(/ 1.0 2)~ is evaluated as ~0.5~, so I'd recommend using floats when you need floats.
 
-   This problem doesn't exist if you use slime integration.
+   This problem doesn't exist if you use slime integration. But slime will evaluate =(/ 1 2)= as =1/2= so expect that to be the final answer.
 
 * Tips and Tricks
+
+** Including Units
+LiTeX mode now supports unit conversion and formatting using the =[[https://github.com/Atreyagaurav/units-mode][units-mode]]= which in turn uses gnu units.
+
+The formatting is like below, the functions are from =units-mode= package.
+- =(units-convert-simple (/ 1 2) "m" "ft") ⇒ \frac{1}{2} \text{m -> ft}=
+- =(units-convert "2 m" "ft") ⇒ 2 m \text{(-> ft)}=
+- =(units-reduce "1 m + 24 in") ⇒ 1 m + 24 in=
+- =(units-ignore 5 "ft") ⇒ 5 \text{ft}=
+
+It also formats correctly on step by step solve, for example:
+- =(setq L (units-convert-simple (+ 1 2) "m" "ft"))=
+  
+  #+begin_src latex
+\begin{align*}
+L& = 1 + 2 \text{m -> ft}\\
+ & = 3 \text{m -> ft}\\
+ & = 9.843 \text{ft}
+\end{align*}
+#+end_src
+
+- =(setq L (units-convert "2 m" "ft"))=
+  
+#+begin_src latex
+\begin{align*}
+L& = 2 m \text{(-> ft)}\\
+ & = 6.5616798 \text{ft}
+\end{align*}
+#+end_src
+
+- =(setq l (units-reduce "1 m + 24 in"))=
+
+#+begin_src latex
+\begin{align*}
+l& = 1 m + 24 in\\
+ & = 1.6096 m
+\end{align*}
+#+end_src
+
+If you're using slime for evaluation, you need to load the units functions in slime too. The functions are available in units-mode's github.
 
 ** Using case sensitive symbols
    Inside emacs the symbols are read without case sensitivity, so if you define and variable names ~ABCD~, it'll replace the variable named ~abcd~. To avoid that, specially if you have formula with both lowercase and uppercase symbols you can use this customization.

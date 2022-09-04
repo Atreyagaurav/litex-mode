@@ -6,7 +6,7 @@
 ;; URL: https://github.com/Atreyagaurav/litex-mode
 ;; Version: 0.1
 ;; Keywords: calculator, lisp, LaTeX
-;; Package-Requires: ((emacs "24.4"))
+;; Package-Requires: ((emacs "24.4") (units-mode "20220903.1944"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -394,7 +394,7 @@ Return true if that function may need its argument to be in brackets
 	(from-unit (cadr args))
 	(to-unit (caddr args)))
       (format "%s \\text{%s -> %s}"
-	      (litex-latex-maybe-enclose expr 'units-convert-single)
+	      (litex-latex-maybe-enclose expr 'units-convert-simple)
 	      from-unit
 	      to-unit)))
 
@@ -483,17 +483,17 @@ format."
 
 (defun litex-units-single-step (form)
   (pcase form
-    (`(units-convert ,value ,unit) (list 'units-ignore (litex-eval form) unit))
-    (`(units-convert-simple ,value ,from ,unit) (list 'units-ignore (litex-eval form) unit))
-    (`(units-reduce ,value) (litex-eval form))
+    (`(units-convert ,_ ,unit) (list 'units-ignore (litex-eval form) unit))
+    (`(units-convert-simple ,_ ,_ ,unit) (list 'units-ignore (read (litex-eval form)) unit))
+    (`(units-reduce ,_) (litex-eval form))
     (_ (error "Unknown units function."))))
 
 (defun litex-units-is-final-form (form)
   (pcase form
-    (`(units-convert ,value ,unit) nil)
-    (`(units-convert-simple ,value ,from ,unit) nil)
-    (`(units-reduce ,value) nil)
-    (`(units-ignore ,value ,unit) t)
+    (`(units-convert ,_ ,_) nil)
+    (`(units-convert-simple ,_ ,_ ,_) nil)
+    (`(units-reduce ,_) nil)
+    (`(units-ignore ,_ ,_) t)
     (_ nil)))
 
 
@@ -501,6 +501,7 @@ format."
   "Solves a single step of calculation in FORM."
   (cond ((listp form)
          (if (cl-every (lambda (f) (or (numberp f)
+				  (and (symbolp f) (litex-varible-is-ratio f))
 				  (stringp f))) (cl-rest form))
              (if (string-match-p "^units-" (symbol-name (car form)))
 		 (litex-units-single-step form)
