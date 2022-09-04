@@ -168,7 +168,9 @@ l& = 1 m + 24 in\\
 \end{align*}
 #+end_src
 
-If you're using slime for evaluation, you need to load the units functions in slime too. The functions are available in units-mode's github.
+If you're using slime for evaluation, you need to load the units functions in slime too. The functions are available in units-mode's github named =clisp/units.lisp=.
+
+For =sbcl= you can put the contents in =clisp/units.lisp= to =~/.sbclrc= so it's evaluated in sbcl/slime startup.
 
 ** Using case sensitive symbols
    Inside emacs the symbols are read without case sensitivity, so if you define and variable names ~ABCD~, it'll replace the variable named ~abcd~. To avoid that, specially if you have formula with both lowercase and uppercase symbols you can use this customization.

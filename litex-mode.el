@@ -6,7 +6,7 @@
 ;; URL: https://github.com/Atreyagaurav/litex-mode
 ;; Version: 0.1
 ;; Keywords: calculator, lisp, LaTeX
-;; Package-Requires: ((emacs "24.4") (units-mode "20220903.1944"))
+;; Package-Requires: ((emacs "24.4") (units-mode "0.1.1"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
