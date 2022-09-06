@@ -164,24 +164,26 @@
 Argument VAR: variable which could be from slime output."
   (if (string-match-p "[0-9]+/[0-9]+" (prin1-to-string var)) t nil))
 
-(defun litex-format-slime-output (output)
+(defun litex-process-slime-output (output)
   "Format the OUTPUT from slime to litex form."
   (pcase (type-of output)
-    ('symbol (if (litex-varible-is-ratio output)
-		 (let ((parts (split-string
-			       (prin1-to-string output) "/"))
+    ('symbol (let ((out-str (prin1-to-string output)))
+	       (if (litex-varible-is-ratio output)
+		 (let ((parts (split-string out-str "/"))
 		       (litex-format-float-trim-decimal t))
-		   (format "\\frac{%s}{%s}"
-			   (litex-format-float (read (car parts)))
-			   (litex-format-float (read (cadr parts)))))
-	       (litex-format-variable output)))
-    ('float (litex-format-float output))
-    (_ (prin1-to-string output))))
+		   (/ (* 1.0 (read (car parts))) (read (cadr parts))))
+	     (if (string-match "\\([0-9]+\\)\\\\?\\([0-9.]+\\)d\\([+-]?[0-9]+\\)" out-str)
+		 (read (format "%s%se%s" 
+			       (match-string 1 out-str)
+		       (match-string 2 out-str)
+		       (match-string 3 out-str)))
+	       output))))
+    (_ output)))
 
 (defun litex-eval (expr)
   "Eval funcion used by LiTeX, evaluate the EXPR in elisp or slime."
   (if litex-use-slime-for-eval
-      (litex-format-slime-output
+      (litex-process-slime-output
        (org-babel-execute:lisp (prin1-to-string expr) '()))
     (eval expr)))
 
@@ -484,7 +486,9 @@ format."
 (defun litex-units-single-step (form)
   (pcase form
     (`(units-convert ,_ ,unit) (list 'units-ignore (litex-eval form) unit))
-    (`(units-convert-simple ,_ ,_ ,unit) (list 'units-ignore (read (litex-eval form)) unit))
+    (`(units-convert-simple ,_ ,_ ,unit)
+     (list 'units-ignore
+	   (litex-eval form) unit))
     (`(units-reduce ,_) (litex-eval form))
     (_ (error "Unknown units function."))))
 
@@ -503,10 +507,13 @@ format."
          (if (cl-every (lambda (f) (or (numberp f)
 				  (and (symbolp f) (litex-varible-is-ratio f))
 				  (stringp f))) (cl-rest form))
-             (if (string-match-p "^units-" (symbol-name (car form)))
-		 (litex-units-single-step form)
+             (if (string-match-p "^units-"
+				 (symbol-name (car form)))
+		 (if (litex-units-is-final-form form)
+		     (litex-eval form)
+		   (litex-units-single-step form))
 	       (litex-eval form))
-           (cons (cl-first form)
+           (cons (car form)
 		 (mapcar #'litex-solve-single-step (cl-rest form)))))
 	((functionp form)
 	 form)
