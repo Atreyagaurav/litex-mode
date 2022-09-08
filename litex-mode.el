@@ -393,12 +393,10 @@ Return true if that function may need its argument to be in brackets
 
 (defun litex-format-args-units-convert-simple (args)
     (let ((expr (car args))
-	(from-unit (cadr args))
-	(to-unit (caddr args)))
-      (format "%s \\text{%s -> %s}"
+	(from-unit (cadr args)))
+      (format "%s \\text{%s}"
 	      (litex-latex-maybe-enclose expr 'units-convert-simple)
-	      from-unit
-	      to-unit)))
+	      from-unit)))
 
 (defun litex-format-args-units-ignore (args)
     (let ((expr (car args))
@@ -490,6 +488,7 @@ format."
      (list 'units-ignore
 	   (litex-eval form) unit))
     (`(units-reduce ,_) (litex-eval form))
+    (`(units-ignore ,exp ,_) (litex-eval exp))
     (_ (error "Unknown units function."))))
 
 (defun litex-units-is-final-form (form)
@@ -599,7 +598,6 @@ Argument END end position of region."
 	    "\\([0-9.+-]+\\)e\\([0-9.+-]+\\)" beg)
       (replace-match "\\1 \\\\times 10^{\\2}"))))
 
-
 (defun litex-exp-in-latex-math (beg end)
   "Insert the selected expression inside latex inline math environment.
 Argument BEG begining position of region.
@@ -660,7 +658,6 @@ Argument END end position of region."
     (insert litex-math-eqnarray-start
 	    (litex-sexp-to-solved-string expression #'litex-lisp2latex-all)
 	    litex-math-eqnarray-end)))
-
 
 (defun litex-solve-all-steps-align ()
   "Solve last sexp in steps and insert it in LaTeX align environment."
