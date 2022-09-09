@@ -672,6 +672,26 @@ Argument END end position of region."
 	    (litex-sexp-to-solved-string expression #'litex-lisp2latex-all)
 	    litex-math-align-end)))
 
+(defun litex-solve-region-all-steps-align (beg end)
+  "Solve last sexp in steps and insert it in LaTeX eqnarray environment."
+  (interactive "r")
+  (let ((litex-steps-join-string litex-math-steps-align-join-string)
+	(litex-steps-end-string litex-math-steps-align-end-string)
+	(expressions (cdr (read
+			   (concat "(prog "
+				   (buffer-substring-no-properties beg end)
+				   ")")))))
+    (delete-region beg end)
+    (insert litex-math-align-start
+	    (string-join
+	     (cl-loop for exp in expressions
+		      collect (litex-sexp-to-solved-string
+			       exp #'litex-lisp2latex-all)
+		      do (litex-eval exp))
+	     litex-steps-end-string)
+	    litex-math-align-end)))
+
+
 
 (defun litex-format-region-last (beg end)
   "Format region like last `litex-format-region` call (without query).
@@ -755,6 +775,7 @@ BEG and END are region bounds."
     (define-key keymap (kbd "A") 'litex-solve-all-steps-equation)
     (define-key keymap (kbd "a") 'litex-solve-all-steps-align)
     (define-key keymap (kbd "C-a") 'litex-solve-all-steps-eqnarray)
+    (define-key keymap (kbd "C-r") 'litex-solve-region-all-steps-align)
     keymap))
 
 (define-minor-mode litex-mode
