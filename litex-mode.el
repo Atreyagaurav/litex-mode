@@ -34,6 +34,7 @@
 
 ;;; Code:
 (eval-when-compile (require 'pcase))
+(eval-when-compile (require 'subr-x))
 (require 'cl-lib)
 (require 'ob-lisp)
 (require 'units-mode)
@@ -488,7 +489,7 @@ format."
      (list 'units-ignore
 	   (litex-eval form) unit))
     (`(units-reduce ,_) (litex-eval form))
-    (`(units-ignore ,exp ,_) (litex-eval exp))
+    (`(units-ignore ,exp ,_) (litex-solve-single-step exp))
     (_ (error "Unknown units function."))))
 
 (defun litex-units-is-final-form (form)
@@ -496,16 +497,20 @@ format."
     (`(units-convert ,_ ,_) nil)
     (`(units-convert-simple ,_ ,_ ,_) nil)
     (`(units-reduce ,_) nil)
-    (`(units-ignore ,_ ,_) t)
+    (`(units-ignore ,exp ,_) (if (litex-is-final-form exp) t nil))
     (_ nil)))
+
+
+(defun litex-is-final-form (form)
+  (or (numberp form)
+      (and (symbolp form) (litex-varible-is-ratio form))
+      (stringp form)))
 
 
 (defun litex-solve-single-step (form)
   "Solves a single step of calculation in FORM."
   (cond ((listp form)
-         (if (cl-every (lambda (f) (or (numberp f)
-				  (and (symbolp f) (litex-varible-is-ratio f))
-				  (stringp f))) (cl-rest form))
+         (if (cl-every #'litex-is-final-form (cl-rest form))
              (if (string-match-p "^units-"
 				 (symbol-name (car form)))
 		 (if (litex-units-is-final-form form)
