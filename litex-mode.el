@@ -244,7 +244,7 @@ Replace greek unicode or character name to latex notation."
   "Format variable VAR for LaTeX."
   (let ((var-strs (mapcar
 		   (lambda (s) (mapconcat #'litex-format-greek-characters
-				     (split-string s ",") ""))
+				     (split-string s "*") ""))
 		   (split-string (prin1-to-string var t) "-"))))
 
     (let ((var-final (car var-strs)))
