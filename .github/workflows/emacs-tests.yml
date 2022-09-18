@@ -12,5 +12,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         sudo apt-get install emacs && emacs --version
-    - name: Run
-      run: emacs -batch -l subr-x -l ./litex-mode.el -l ert -l ./tests/litex-mode-tests.el -f ert-run-tests-batch-and-exit
+    - name: Checkout units-mode
+      uses: actions/checkout@v2
+      with:
+        repository: atreyagaurav/units-mode
+        path: units-mode
+    - name: Run Tests
+      run: emacs -batch -l ./units-mode/units-mode.el -l ./litex-mode.el -l ert -l ./tests/litex-mode-tests.el -f ert-run-tests-batch-and-exit

@@ -6,7 +6,7 @@
 ;; URL: https://github.com/Atreyagaurav/litex-mode
 ;; Version: 0.1
 ;; Keywords: calculator, lisp, LaTeX
-;; Package-Requires: ((emacs "24.4"))
+;; Package-Requires: ((emacs "24.4") (units-mode "0.1.1"))
 
 ;; This program is free software; you can redistribute it and/or
 ;; modify it under the terms of the GNU General Public License as
@@ -34,8 +34,10 @@
 
 ;;; Code:
 (eval-when-compile (require 'pcase))
+(eval-when-compile (require 'subr-x))
 (require 'cl-lib)
 (require 'ob-lisp)
+(require 'units-mode)
 
 ;; list from:
 ;; https://www.overleaf.com/learn/latex/Operators#Reference_guide
@@ -163,24 +165,26 @@
 Argument VAR: variable which could be from slime output."
   (if (string-match-p "[0-9]+/[0-9]+" (prin1-to-string var)) t nil))
 
-(defun litex-format-slime-output (output)
+(defun litex-process-slime-output (output)
   "Format the OUTPUT from slime to litex form."
   (pcase (type-of output)
-    ('symbol (if (litex-varible-is-ratio output)
-		 (let ((parts (split-string
-			       (prin1-to-string output) "/"))
+    ('symbol (let ((out-str (prin1-to-string output)))
+	       (if (litex-varible-is-ratio output)
+		 (let ((parts (split-string out-str "/"))
 		       (litex-format-float-trim-decimal t))
-		   (format "\\frac{%s}{%s}"
-			   (litex-format-float (read (car parts)))
-			   (litex-format-float (read (cadr parts)))))
-	       (litex-format-variable output)))
-    ('float (litex-format-float output))
-    (_ (prin1-to-string output))))
+		   (/ (* 1.0 (read (car parts))) (read (cadr parts))))
+	     (if (string-match "\\([0-9]+\\)\\\\?\\([0-9.]+\\)d\\([+-]?[0-9]+\\)" out-str)
+		 (read (format "%s%se%s" 
+			       (match-string 1 out-str)
+		       (match-string 2 out-str)
+		       (match-string 3 out-str)))
+	       output))))
+    (_ output)))
 
 (defun litex-eval (expr)
   "Eval funcion used by LiTeX, evaluate the EXPR in elisp or slime."
   (if litex-use-slime-for-eval
-      (litex-format-slime-output
+      (litex-process-slime-output
        (org-babel-execute:lisp (prin1-to-string expr) '()))
     (eval expr)))
 
@@ -240,7 +244,7 @@ Replace greek unicode or character name to latex notation."
   "Format variable VAR for LaTeX."
   (let ((var-strs (mapcar
 		   (lambda (s) (mapconcat #'litex-format-greek-characters
-				     (split-string s "[.]") ""))
+				     (split-string s "*") ""))
 		   (split-string (prin1-to-string var t) "-"))))
 
     (let ((var-final (car var-strs)))
@@ -388,6 +392,20 @@ Return true if that function may need its argument to be in brackets
 	    (mapconcat #'prin1-to-string fargs ",")
 	    (litex-latex-maybe-enclose expr 'defun))))
 
+(defun litex-format-args-units-convert-simple (args)
+    (let ((expr (car args))
+	(from-unit (cadr args)))
+	(format "\\unit[%s]{%s}"
+	      (litex-latex-maybe-enclose expr 'units-convert-simple)
+	      from-unit)))
+
+(defun litex-format-args-units-ignore (args)
+    (let ((expr (car args))
+	  (unit (cadr args)))
+	(format "\\unit[%s]{%s}"
+	      (litex-latex-maybe-enclose expr 'units-ignore)
+	      unit)))
+
 
 (defun litex-format-args-default (func args)
   "Default Formatting function for Lisp expressions.
@@ -454,12 +472,42 @@ format."
    (void-variable (prin1-to-string expression))))
 
 
+(defun litex-units-single-step (form)
+  (pcase form
+    (`(units-convert ,_ ,unit) (list 'units-ignore (litex-eval form) unit))
+    (`(units-convert-simple ,_ ,_ ,unit)
+     (list 'units-ignore
+	   (litex-eval form) unit))
+    (`(units-reduce ,_) (litex-eval form))
+    (`(units-ignore ,exp ,_) (litex-solve-single-step exp))
+    (_ (error "Unknown units function."))))
+
+(defun litex-units-is-final-form (form)
+  (pcase form
+    (`(units-convert ,_ ,_) nil)
+    (`(units-convert-simple ,_ ,_ ,_) nil)
+    (`(units-reduce ,_) nil)
+    (`(units-ignore ,exp ,_) (if (litex-is-final-form exp) t nil))
+    (_ nil)))
+
+
+(defun litex-is-final-form (form)
+  (or (numberp form)
+      (and (symbolp form) (litex-varible-is-ratio form))
+      (stringp form)))
+
+
 (defun litex-solve-single-step (form)
   "Solves a single step of calculation in FORM."
   (cond ((listp form)
-         (if (cl-every #'numberp (cl-rest form))
-             (litex-eval form)
-           (cons (cl-first form)
+         (if (cl-every #'litex-is-final-form (cl-rest form))
+             (if (string-match-p "^units-"
+				 (symbol-name (car form)))
+		 (if (litex-units-is-final-form form)
+		     (litex-eval form)
+		   (litex-units-single-step form))
+	       (litex-eval form))
+           (cons (car form)
 		 (mapcar #'litex-solve-single-step (cl-rest form)))))
 	((functionp form)
 	 form)
@@ -484,7 +532,8 @@ Retuns a list of steps."
 			     (read
 			      (litex-substitute-values form)))))))
 
-    (while (consp form)
+    (while (and (consp form)
+	       (not (litex-units-is-final-form form)))
       (setq solution
 	    (append solution
 		    (list (setq form
@@ -543,7 +592,6 @@ Argument END end position of region."
     (while (re-search-backward
 	    "\\([0-9.+-]+\\)e\\([0-9.+-]+\\)" beg)
       (replace-match "\\1 \\\\times 10^{\\2}"))))
-
 
 (defun litex-exp-in-latex-math (beg end)
   "Insert the selected expression inside latex inline math environment.
@@ -605,7 +653,6 @@ Argument END end position of region."
     (insert litex-math-eqnarray-start
 	    (litex-sexp-to-solved-string expression #'litex-lisp2latex-all)
 	    litex-math-eqnarray-end)))
-
 
 (defun litex-solve-all-steps-align ()
   "Solve last sexp in steps and insert it in LaTeX align environment."
