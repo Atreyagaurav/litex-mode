@@ -134,39 +134,29 @@ Contents of litex-key-map are below.
 LiTeX mode now supports unit conversion and formatting using the =[[https://github.com/Atreyagaurav/units-mode][units-mode]]= which in turn uses gnu units.
 
 The formatting is like below, the functions are from =units-mode= package.
-- =(units-convert-simple (/ 1 2) "m" "ft") ⇒ \frac{1}{2} \text{m -> ft}=
-- =(units-convert "2 m" "ft") ⇒ 2 m \text{(-> ft)}=
-- =(units-reduce "1 m + 24 in") ⇒ 1 m + 24 in=
-- =(units-ignore 5 "ft") ⇒ 5 \text{ft}=
+- =(units-convert-simple (/ 1 2) "m" "ft") ⇒ \unit[\frac{1}{2}]{m}=
+- =(units-ignore 5 "ft") ⇒ \unit[5]{ft}=
 
 It also formats correctly on step by step solve, for example:
 - =(setq L (units-convert-simple (+ 1 2) "m" "ft"))=
   
   #+begin_src latex
 \begin{align*}
-L& = 1 + 2 \text{m -> ft}\\
- & = 3 \text{m -> ft}\\
- & = 9.843 \text{ft}
+L& = \unit[1 + 2]{m}\\
+& = \unit[3]{m}\\
+& = \unit[9.843]{ft}
 \end{align*}
 #+end_src
 
-- =(setq L (units-convert "2 m" "ft"))=
-  
-#+begin_src latex
-\begin{align*}
-L& = 2 m \text{(-> ft)}\\
- & = 6.5616798 \text{ft}
-\end{align*}
-#+end_src
-
-- =(setq l (units-reduce "1 m + 24 in"))=
+- =(setq l (units-ignore 24 "in"))=
 
 #+begin_src latex
 \begin{align*}
-l& = 1 m + 24 in\\
- & = 1.6096 m
+l& = \unit[24]{in}
 \end{align*}
 #+end_src
+
+*Note that the =\unit= latex command is from [[https://mirrors.mit.edu/CTAN/macros/latex/contrib/units/units.pdf][=units= package]], so you have to include it in your preamble.*
 
 If you're using slime for evaluation, you need to load the units functions in slime too. The functions are available in units-mode's github named =clisp/units.lisp=.
 

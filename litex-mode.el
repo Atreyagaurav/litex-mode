@@ -395,25 +395,15 @@ Return true if that function may need its argument to be in brackets
 (defun litex-format-args-units-convert-simple (args)
     (let ((expr (car args))
 	(from-unit (cadr args)))
-      (format "%s \\text{%s}"
+	(format "\\unit[%s]{%s}"
 	      (litex-latex-maybe-enclose expr 'units-convert-simple)
 	      from-unit)))
 
 (defun litex-format-args-units-ignore (args)
     (let ((expr (car args))
-	(unit (cadr args)))
-      (format "%s \\text{%s}"
+	  (unit (cadr args)))
+	(format "\\unit[%s]{%s}"
 	      (litex-latex-maybe-enclose expr 'units-ignore)
-	      unit)))
-
-(defun litex-format-args-units-reduce (args)
-  (litex-latex-maybe-enclose (car args) 'units-reduce))
-
-(defun litex-format-args-units-convert (args)
-    (let ((value (car args))
-	(unit (cadr args)))
-      (format "%s \\text{(-> %s)}"
-	      (litex-latex-maybe-enclose value 'units-convert)
 	      unit)))
 
 
