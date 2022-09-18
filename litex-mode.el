@@ -34,6 +34,7 @@
 
 ;;; Code:
 (eval-when-compile (require 'pcase))
+(eval-when-compile (require 'subr-x))
 (require 'cl-lib)
 (require 'ob-lisp)
 (require 'units-mode)
@@ -393,12 +394,10 @@ Return true if that function may need its argument to be in brackets
 
 (defun litex-format-args-units-convert-simple (args)
     (let ((expr (car args))
-	(from-unit (cadr args))
-	(to-unit (caddr args)))
-      (format "%s \\text{%s -> %s}"
+	(from-unit (cadr args)))
+      (format "%s \\text{%s}"
 	      (litex-latex-maybe-enclose expr 'units-convert-simple)
-	      from-unit
-	      to-unit)))
+	      from-unit)))
 
 (defun litex-format-args-units-ignore (args)
     (let ((expr (car args))
@@ -490,6 +489,7 @@ format."
      (list 'units-ignore
 	   (litex-eval form) unit))
     (`(units-reduce ,_) (litex-eval form))
+    (`(units-ignore ,exp ,_) (litex-solve-single-step exp))
     (_ (error "Unknown units function."))))
 
 (defun litex-units-is-final-form (form)
@@ -497,16 +497,20 @@ format."
     (`(units-convert ,_ ,_) nil)
     (`(units-convert-simple ,_ ,_ ,_) nil)
     (`(units-reduce ,_) nil)
-    (`(units-ignore ,_ ,_) t)
+    (`(units-ignore ,exp ,_) (if (litex-is-final-form exp) t nil))
     (_ nil)))
+
+
+(defun litex-is-final-form (form)
+  (or (numberp form)
+      (and (symbolp form) (litex-varible-is-ratio form))
+      (stringp form)))
 
 
 (defun litex-solve-single-step (form)
   "Solves a single step of calculation in FORM."
   (cond ((listp form)
-         (if (cl-every (lambda (f) (or (numberp f)
-				  (and (symbolp f) (litex-varible-is-ratio f))
-				  (stringp f))) (cl-rest form))
+         (if (cl-every #'litex-is-final-form (cl-rest form))
              (if (string-match-p "^units-"
 				 (symbol-name (car form)))
 		 (if (litex-units-is-final-form form)
@@ -599,7 +603,6 @@ Argument END end position of region."
 	    "\\([0-9.+-]+\\)e\\([0-9.+-]+\\)" beg)
       (replace-match "\\1 \\\\times 10^{\\2}"))))
 
-
 (defun litex-exp-in-latex-math (beg end)
   "Insert the selected expression inside latex inline math environment.
 Argument BEG begining position of region.
@@ -660,7 +663,6 @@ Argument END end position of region."
     (insert litex-math-eqnarray-start
 	    (litex-sexp-to-solved-string expression #'litex-lisp2latex-all)
 	    litex-math-eqnarray-end)))
-
 
 (defun litex-solve-all-steps-align ()
   "Solve last sexp in steps and insert it in LaTeX align environment."
