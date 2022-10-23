@@ -242,15 +242,16 @@ Replace greek unicode or character name to latex notation."
 
 (defun litex-format-variable (var)
   "Format variable VAR for LaTeX."
-  (let ((var-strs (mapcar
-		   (lambda (s) (mapconcat #'litex-format-greek-characters
-				     (split-string s "*") ""))
-		   (split-string (prin1-to-string var t) "-"))))
+  (let ((var-strs (reverse
+		   (mapcar
+		    (lambda (s) (mapconcat #'litex-format-greek-characters
+				      (split-string s "*") ""))
+		    (split-string (prin1-to-string var t) "-")))))
 
     (let ((var-final (car var-strs)))
       (if (> (length var-strs) 1)
 	  (cl-loop for (cvar . rest) on (cl-rest var-strs) do
-		   (setq var-final (format "%s_{%s}" var-final cvar))))
+		   (setq var-final (format "%s_{%s}" cvar var-final))))
       var-final)))
 
 
@@ -395,16 +396,20 @@ Return true if that function may need its argument to be in brackets
 (defun litex-format-args-units-convert-simple (args)
     (let ((expr (car args))
 	(from-unit (cadr args)))
-	(format "\\unit[%s]{%s}"
-	      (litex-latex-maybe-enclose expr 'units-convert-simple)
-	      from-unit)))
+      (if (litex-is-final-form expr)
+	  (format "\\unit[%s]{%s}"
+		  (litex-latex-maybe-enclose expr 'units-convert-simple)
+		  from-unit)
+	(litex-latex-maybe-enclose expr))))
 
 (defun litex-format-args-units-ignore (args)
     (let ((expr (car args))
 	  (unit (cadr args)))
+      (if (litex-is-final-form expr)
 	(format "\\unit[%s]{%s}"
 	      (litex-latex-maybe-enclose expr 'units-ignore)
-	      unit)))
+	      unit)
+	(litex-latex-maybe-enclose expr))))
 
 
 (defun litex-format-args-default (func args)
