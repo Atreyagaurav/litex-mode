@@ -383,6 +383,14 @@ Return true if that function may need its argument to be in brackets
       #'litex-format-args-setq)
 
 
+(defun litex-format-args-list (args)
+  (with-output-to-string
+    (cl-loop for arg in args
+	     do (princ (format "%s = %s; "
+			    (litex-lisp2latex-all arg)
+			    (litex-lisp2latex-all
+			     (litex-eval arg)))))))
+
 (defun litex-format-args-defun (args)
   "Formatting function for defun called with ARGS function."
   (let ((func-name (car args))
@@ -499,7 +507,8 @@ format."
 (defun litex-is-final-form (form)
   (or (numberp form)
       (and (symbolp form) (litex-varible-is-ratio form))
-      (stringp form)))
+      (stringp form)
+      (and (listp form) (string= (car form) 'list))))
 
 
 (defun litex-solve-single-step (form)
@@ -526,8 +535,11 @@ format."
 (defun litex-solve-all-steps (form)
   "Solves all the steps of calculations in FORM expression.
 Retuns a list of steps."
-  (let
+  (if (litex-is-final-form form)
+      (list form)
+    (let
       ((solution (list form))) ;given expression
+
     (if
 	(litex-contains-variables form)
 	(setq solution
@@ -543,17 +555,19 @@ Retuns a list of steps."
 	    (append solution
 		    (list (setq form
 				(litex-solve-single-step form))))))
-    solution))
+    solution)))
 
 
-(defun litex-sexp-to-solved-string (expression format-func)
-  "Return solution of EXPRESSION using FORMAT-FUNC to format steps."
+(defun litex-sexp-to-solved-string (expression format-func &optional setq-join)
+  "Return solution of EXPRESSION using FORMAT-FUNC to format steps.
+Optionally use SETQ-JOIN for setq function variable and value
+ defaults to `litex-steps-join-string'."
   (pcase expression
     (`(setq ,var ,exp)
      (concat
       (format "%s%s"
 	      (litex-format-variable var)
-	      litex-steps-join-string)
+	      (or setq-join litex-steps-join-string))
       (mapconcat format-func
 		 (litex-solve-all-steps exp)
 		 (concat litex-steps-end-string
@@ -681,10 +695,12 @@ Argument END end position of region."
     (delete-region beg end)
     (insert litex-math-align-start
 	    (string-join
-	     (cl-loop for exp in expressions
+	     (let ((litex-steps-join-string litex-math-steps-equation-join-string)
+		   (litex-steps-end-string litex-math-steps-equation-end-string))
+	      (cl-loop for exp in expressions
 		      collect (litex-sexp-to-solved-string
-			       exp #'litex-lisp2latex-all)
-		      do (litex-eval exp))
+			       exp #'litex-lisp2latex-all litex-math-steps-align-join-string)
+		      do (litex-eval exp)))
 	     litex-steps-end-string)
 	    litex-math-align-end)))
 
