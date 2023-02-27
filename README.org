@@ -32,6 +32,7 @@ Not only can it convert lisp expressions to latex, it can also, give intermediat
   - [[#including-units][Including Units]]
   - [[#using-case-sensitive-symbols][Using case sensitive symbols]]
   - [[#slime-integration][Slime integration]]
+  - [[#using-litex-variables-in-your-normal-calculations][Using LiTeX variables in your normal calculations]]
   - [[#using-greek-letters][Using Greek letters]]
 - [[#explanation-for-functions][Explanation for functions]]
   - [[#litex-format-region-last][litex-format-region-last]]
@@ -180,6 +181,16 @@ For =sbcl= you can put the contents in =clisp/units.lisp= to =~/.sbclrc= so it's
 (setq litex-use-slime-for-eval t)
 #+end_src
 
+** Using LiTeX variables in your normal calculations
+You can use the function =litex-eval= to evaluate expressions for you. If you don't have slime integration then normal evaluation will work, but this will handle both cases for you.
+
+For example:
+#+begin_src emacs-lisp :tangle yes
+(defun calc-Q (a b c)
+  (litex-eval `(+ (* C-1 ,b) (* C-2 ,a) (* C-3 ,c))))
+#+end_src
+Here, the function calc-Q can be called from elisp, so you can put it in the org table formula, while internally it uses the variables =C-1= to =C-3= from your slime instance.
+
 ** Using Greek letters
    Someone who writes in LaTeX will definitely want to include greek letters, so you can use greek letters multiple ways in LiTeX.
 
@@ -327,3 +338,4 @@ y &=& 2 + 3 + 6 x \\
   - Many functions that might have special syntax in LaTeX yet to be written. For example ~1+~, ~defun~ were added later (it only started with 4 operators), similar could be done for many more.
   - Fixing some glitches with the current functions.
   - Maybe some symbolic calculations using ~calc-eval~ if it has variables that are not yet defined.
+  - I'm thinking of making an org babel implementation where it'll generate the equations that we can include in latex export.
